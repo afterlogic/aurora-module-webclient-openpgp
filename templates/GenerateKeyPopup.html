@@ -6,11 +6,11 @@
 
 		<div class="fields">
 			<div class="row">
-				<span class="label" data-bind="i18n: {'key': 'CORE/LABEL_EMAIL'}"></span>
+				<span class="label" data-bind="i18n: {'key': 'CORECLIENT/LABEL_EMAIL'}"></span>
 				<select class="input" data-bind="options: emails, value: selectedEmail"></select>
 			</div>
 			<div class="row">
-				<span class="label" data-bind="i18n: {'key': 'CORE/LABEL_PASSWORD'}"></span>
+				<span class="label" data-bind="i18n: {'key': 'CORECLIENT/LABEL_PASSWORD'}"></span>
 				<input type="password" class="value input" data-bind="value: password" />
 			</div>
 			<div class="row">
@@ -20,7 +20,7 @@
 			<div class="buttons">
 				<span class="button" data-bind="visible: !process(), i18n: {'key': '%MODULENAME%/ACTION_GENERATE'}, click: generate"></span>
 				<span class="button" data-bind="visible: process, i18n: {'key': '%MODULENAME%/ACTION_GENERATE_IN_PROGRESS'}"></span>
-				<span class="button secondary_button" data-bind="visible: !process(), i18n: {'key': 'CORE/ACTION_CANCEL'}, click: cancelPopup"></span>
+				<span class="button secondary_button" data-bind="visible: !process(), i18n: {'key': 'CORECLIENT/ACTION_CANCEL'}, click: cancelPopup"></span>
 			</div>
 		</div>
 	</div>

@@ -12,7 +12,7 @@
 						<input type="checkbox" data-bind="checked: sign" id="openpgp-sign" />
 					</label>
 					<label data-bind="i18n: {'key': '%MODULENAME%/LABEL_SIGN'}" for="openpgp-sign"></label>
-					<span style="width: 100px;" class="label pgp_password" data-bind="i18n: {'key': 'CORE/LABEL_PASSWORD'}"></span>
+					<span style="width: 100px;" class="label pgp_password" data-bind="i18n: {'key': 'CORECLIENT/LABEL_PASSWORD'}"></span>
 					<input style="width: 200px;" type="password" class="value input" data-bind="value: password, hasfocus: passwordFocused" />
 				</div>
 			</div>
@@ -27,7 +27,7 @@
 			</div>
 			<div class="buttons">
 				<span class="button" data-bind="text: signEncryptButtonText, command: signEncryptCommand, visible: isEnableSignEncrypt"></span>
-				<span class="button secondary_button" data-bind="i18n: {'key': 'CORE/ACTION_CANCEL'}, click: cancelPopup"></span>
+				<span class="button secondary_button" data-bind="i18n: {'key': 'CORECLIENT/ACTION_CANCEL'}, click: cancelPopup"></span>
 			</div>
 		</div>
 	</div>
