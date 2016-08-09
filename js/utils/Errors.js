@@ -3,9 +3,9 @@
 var
 	_ = require('underscore'),
 	
-	TextUtils = require('modules/CoreClient/js/utils/Text.js'),
+	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
 	
-	Screens = require('modules/CoreClient/js/Screens.js'),
+	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
 	
 	Enums = require('modules/%ModuleName%/js/Enums.js'),
 	

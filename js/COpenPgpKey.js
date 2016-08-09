@@ -1,6 +1,6 @@
 'use strict';
 
-var AddressUtils = require('modules/CoreClient/js/utils/Address.js');
+var AddressUtils = require('%PathToCoreWebclientModule%/js/utils/Address.js');
 
 /**
  * @todo
