@@ -10,7 +10,7 @@ var
 	Screens = require('modules/CoreClient/js/Screens.js'),
 	UserSettings = require('modules/CoreClient/js/Settings.js'),
 	
-	CAbstractSettingsFormView = ModulesManager.run('SettingsClient', 'getAbstractSettingsFormViewClass'),
+	CAbstractSettingsFormView = ModulesManager.run('SettingsWebclient', 'getAbstractSettingsFormViewClass'),
 	
 	Popups = require('modules/CoreClient/js/Popups.js'),
 	ConfirmPopup = require('modules/CoreClient/js/popups/ConfirmPopup.js'),

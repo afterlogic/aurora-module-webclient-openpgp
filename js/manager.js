@@ -24,9 +24,9 @@ module.exports = function (oAppData) {
 		start: function (ModulesManager) {
 			if (IsPgpSupported())
 			{
-				ModulesManager.run('MailClient', 'registerMessagePaneController', [require('modules/%ModuleName%/js/views/MessageControlsView.js'), 'BeforeMessageHeaders']);
-				ModulesManager.run('MailClient', 'registerComposeToolbarController', [require('modules/%ModuleName%/js/views/ComposeButtonsView.js')]);
-				ModulesManager.run('SettingsClient', 'registerSettingsTab', [function () { return require('modules/%ModuleName%/js/views/OpenPgpSettingsPaneView.js'); }, Settings.HashModuleName, TextUtils.i18n('%MODULENAME%/LABEL_SETTINGS_TAB')]);
+				ModulesManager.run('MailWebclient', 'registerMessagePaneController', [require('modules/%ModuleName%/js/views/MessageControlsView.js'), 'BeforeMessageHeaders']);
+				ModulesManager.run('MailWebclient', 'registerComposeToolbarController', [require('modules/%ModuleName%/js/views/ComposeButtonsView.js')]);
+				ModulesManager.run('SettingsWebclient', 'registerSettingsTab', [function () { return require('modules/%ModuleName%/js/views/OpenPgpSettingsPaneView.js'); }, Settings.HashModuleName, TextUtils.i18n('%MODULENAME%/LABEL_SETTINGS_TAB')]);
 			}
 		}
 	};

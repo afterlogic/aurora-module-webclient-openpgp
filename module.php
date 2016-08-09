@@ -1,6 +1,6 @@
 <?php
 
-class OpenPgpClientModule extends AApiModule
+class OpenPgpWebclientModule extends AApiModule
 {
 	public function GetAppData()
 	{
