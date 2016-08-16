@@ -19,7 +19,7 @@ module.exports = function (oAppData) {
 	
 	return {
 		isAvailable: function (iUserRole, bPublic) {
-			return !bPublic && iUserRole === Enums.UserRole.PowerUser;
+			return !bPublic && iUserRole === Enums.UserRole.NormalUser;
 		},
 		start: function (ModulesManager) {
 			if (IsPgpSupported())
