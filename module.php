@@ -1,6 +1,8 @@
 <?php
 
-class OpenPgpWebclientModule extends AApiModule
+namespace Aurora\Modules;
+
+class OpenPgpWebclientModule extends \AApiModule
 {
 	/***** public functions might be called with web API *****/
 	/**
