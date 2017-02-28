@@ -2,7 +2,7 @@
 
 namespace Aurora\Modules;
 
-class OpenPgpWebclientModule extends \AApiModule
+class OpenPgpWebclientModule extends \Aurora\System\AbstractModule
 {
 	/***** public functions might be called with web API *****/
 	/**
@@ -12,7 +12,7 @@ class OpenPgpWebclientModule extends \AApiModule
 	 */
 	public function GetSettings()
 	{
-		\CApi::checkUserRoleIsAtLeast(\EUserRole::Anonymous);
+		\Aurora\System\Api::checkUserRoleIsAtLeast(\EUserRole::Anonymous);
 		
 		return array(
 			'EnableModule' => true // AppData.User.EnableOpenPgp
