@@ -2,7 +2,7 @@
 
 namespace Aurora\Modules;
 
-class OpenPgpWebclientModule extends \Aurora\System\AbstractModule
+class OpenPgpWebclientModule extends \Aurora\System\Module\AbstractModule
 {
 	/***** public functions might be called with web API *****/
 	/**
