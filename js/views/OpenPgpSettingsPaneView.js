@@ -29,7 +29,7 @@ function COpenPgpSettingsPaneView()
 {
 	CAbstractSettingsFormView.call(this, Settings.ServerModuleName);
 	
-	this.bAllowAutoSave = UserSettings.AutoSave;
+	this.bAllowAutoSave = true;
 	
 	this.enableOpenPgp = ko.observable(Settings.enableOpenPgp());
 	this.allowAutosaveInDrafts = ko.observable(UserSettings.AllowAutosaveInDrafts);
