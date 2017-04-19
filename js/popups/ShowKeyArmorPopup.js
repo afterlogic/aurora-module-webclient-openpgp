@@ -7,6 +7,10 @@ var
 	
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
 	
+	ModulesManager = require('%PathToCoreWebclientModule%/js/ModulesManager.js'),
+	ComposeMessageWithAttachments = ModulesManager.run('MailWebclient', 'getComposeMessageWithAttachments'),
+	Ajax = require('%PathToCoreWebclientModule%/js/Ajax.js'),
+	
 	CAbstractPopup = require('%PathToCoreWebclientModule%/js/popups/CAbstractPopup.js')
 ;
 
@@ -17,7 +21,7 @@ function CShowKeyArmorPopup()
 {
 	CAbstractPopup.call(this);
 	
-	this.allowSendEmails = true;
+	this.bAllowSendEmails = _.isFunction(ComposeMessageWithAttachments);
 	
 	this.armor = ko.observable('');
 	this.htmlArmor = ko.computed(function () {
@@ -73,11 +77,16 @@ CShowKeyArmorPopup.prototype.onShow = function (oKey)
 
 CShowKeyArmorPopup.prototype.send = function ()
 {
-//	if (this.armor() !== '' && this.downloadLinkFilename() !== '')
-//	{
-//		App.Api.composeMessageWithPgpKey(this.armor(), this.downloadLinkFilename());
-//		this.closePopup();
-//	}
+	if (this.bAllowSendEmails && this.armor() !== '' && this.downloadLinkFilename() !== '')
+	{
+		Ajax.send('Core', 'SaveContentAsTempFile', { 'Content': this.armor(), 'FileName': this.downloadLinkFilename() }, function (oResponse) {
+			if (oResponse.Result)
+			{
+				ComposeMessageWithAttachments([oResponse.Result]);
+				this.closePopup();
+			}
+		}, this);
+	}
 };
 
 CShowKeyArmorPopup.prototype.select = function ()
