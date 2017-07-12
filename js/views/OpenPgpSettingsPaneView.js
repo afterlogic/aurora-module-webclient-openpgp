@@ -8,7 +8,6 @@ var
 	
 	ModulesManager = require('%PathToCoreWebclientModule%/js/ModulesManager.js'),
 	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
-	UserSettings = require('%PathToCoreWebclientModule%/js/Settings.js'),
 	
 	CAbstractSettingsFormView = ModulesManager.run('SettingsWebclient', 'getAbstractSettingsFormViewClass'),
 	
@@ -29,10 +28,7 @@ function COpenPgpSettingsPaneView()
 {
 	CAbstractSettingsFormView.call(this, Settings.ServerModuleName);
 	
-	this.bAllowAutoSave = true;
-	
 	this.enableOpenPgp = ko.observable(Settings.enableOpenPgp());
-	this.allowAutosaveInDrafts = ko.observable(UserSettings.AllowAutosaveInDrafts);
 	
 	this.keys = ko.observableArray(OpenPgp.getKeys());
 	OpenPgp.getKeysObservable().subscribe(function () {
@@ -112,28 +108,25 @@ COpenPgpSettingsPaneView.prototype.showArmor = function (oKey)
 COpenPgpSettingsPaneView.prototype.getCurrentValues = function ()
 {
 	return [
-		this.enableOpenPgp(),
-		this.allowAutosaveInDrafts()
+		this.enableOpenPgp()
 	];
 };
 
 COpenPgpSettingsPaneView.prototype.revertGlobalValues = function ()
 {
 	this.enableOpenPgp(Settings.enableOpenPgp());
-	this.allowAutosaveInDrafts(UserSettings.AllowAutosaveInDrafts);
 };
 
 COpenPgpSettingsPaneView.prototype.getParametersForSave = function ()
 {
 	return {
-		'EnableOpenPgp': this.enableOpenPgp(),
-		'AllowAutosaveInDrafts': this.allowAutosaveInDrafts()
+		'EnableOpenPgp': this.enableOpenPgp()
 	};
 };
 
 COpenPgpSettingsPaneView.prototype.applySavedValues = function (oParameters)
 {
-	Settings.update(oParameters.EnableOpenPgp, oParameters.AllowAutosaveInDrafts);
+	Settings.update(oParameters.EnableOpenPgp);
 };
 
 module.exports = new COpenPgpSettingsPaneView();
