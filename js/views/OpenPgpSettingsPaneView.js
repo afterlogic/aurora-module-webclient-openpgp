@@ -120,13 +120,13 @@ COpenPgpSettingsPaneView.prototype.revertGlobalValues = function ()
 COpenPgpSettingsPaneView.prototype.getParametersForSave = function ()
 {
 	return {
-		'EnableOpenPgp': this.enableOpenPgp()
+		'EnableModule': this.enableOpenPgp()
 	};
 };
 
 COpenPgpSettingsPaneView.prototype.applySavedValues = function (oParameters)
 {
-	Settings.update(oParameters.EnableOpenPgp);
+	Settings.update(oParameters.EnableModule);
 };
 
 module.exports = new COpenPgpSettingsPaneView();

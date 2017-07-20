@@ -15,6 +15,14 @@ namespace Aurora\Modules\OpenPgpWebclient;
  */
 class Module extends \Aurora\System\Module\AbstractWebclientModule
 {
+	public function init() 
+	{
+		$this->extendObject('CUser', array(
+				'EnableModule'	=> array('bool', false),
+			)
+		);
+	}
+	
 	/***** public functions might be called with web API *****/
 	/**
 	 * Obtains list of module settings for authenticated user.
@@ -25,9 +33,38 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
 		
-		return array(
-			'EnableModule' => true // AppData.User.EnableOpenPgp
-		);
+		$aSettings = array();
+		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		if ($oUser && $oUser->Role === \Aurora\System\Enums\UserRole::NormalUser)
+		{
+			if (isset($oUser->{$this->GetName().'::EnableModule'}))
+			{
+				$aSettings['EnableModule'] = $oUser->{$this->GetName().'::EnableModule'};
+			}
+		}
+		return $aSettings;
+	}
+	
+	public function UpdateSettings($EnableModule)
+	{
+		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+		
+		$oUser = \Aurora\System\Api::getAuthenticatedUser();
+		if ($oUser)
+		{
+			if ($oUser->Role === \Aurora\System\Enums\UserRole::NormalUser)
+			{
+				$oCoreDecorator = \Aurora\Modules\Core\Module::Decorator();
+				$oUser->{$this->GetName().'::EnableModule'} = $EnableModule;
+				return $oCoreDecorator->UpdateUserObject($oUser);
+			}
+			if ($oUser->Role === \Aurora\System\Enums\UserRole::SuperAdmin)
+			{
+				return true;
+			}
+		}
+		
+		return false;
 	}
 	/***** public functions might be called with web API *****/
 }

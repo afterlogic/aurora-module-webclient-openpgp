@@ -3,7 +3,7 @@
 var ko = require('knockout');
 
 module.exports = {
-	ServerModuleName: 'OpenPgp',
+	ServerModuleName: '%ModuleName%',
 	HashModuleName: 'openpgp',
 	
 	enableOpenPgp: ko.observable(true),
@@ -13,5 +13,9 @@ module.exports = {
 		{
 			this.enableOpenPgp(!!oAppDataSection.EnableModule);
 		}
+	},
+	
+	update: function (bEnableOpenPgp) {
+		this.enableOpenPgp(bEnableOpenPgp);
 	}
 };

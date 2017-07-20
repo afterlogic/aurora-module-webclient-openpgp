@@ -86,6 +86,10 @@ CMessageControlsView.prototype.doAfterPopulatingMessage = function (oMessageProp
 				this.oMessagePane.changeText('<pre>' + TextUtils.encodeHtml(this.sText) + '</pre>');
 			}
 		}
+		else
+		{
+			this.visibleDecryptControl(false);
+		}
 	}
 	else
 	{
