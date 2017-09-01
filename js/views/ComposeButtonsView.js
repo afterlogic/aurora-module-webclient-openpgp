@@ -7,6 +7,7 @@ var
 			
 	Utils = require('%PathToCoreWebclientModule%/js/utils/Common.js'),
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
+	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
 	
 	Popups = require('%PathToCoreWebclientModule%/js/Popups.js'),
 	ConfirmPopup = require('%PathToCoreWebclientModule%/js/popups/ConfirmPopup.js'),
@@ -134,7 +135,11 @@ CComposeButtonsView.prototype.confirmOpenPgp = function ()
 {
 	if (this.oCompose)
 	{
-		if (this.oCompose.isHtml())
+		if(this.oCompose.getRecipientEmails().length < 1)
+		{
+			Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_TO_ENCRYPT_SPECIFY_RECIPIENTS'));
+		}
+		else if (this.oCompose.isHtml())
 		{
 			var
 				sConfirm = TextUtils.i18n('%MODULENAME%/CONFIRM_HTML_TO_PLAIN_FORMATTING'),
