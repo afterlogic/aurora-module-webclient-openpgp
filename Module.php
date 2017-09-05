@@ -21,6 +21,37 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 				'EnableModule'	=> array('bool', false),
 			)
 		);
+		
+		$this->subscribeEvent('Files::PopulateFileItem', array($this, 'onPopulateFileItem'));
+		$this->subscribeEvent('Mail::GetAttachmentContent', array($this, 'oGetAttachmentContent'));
+	}
+	
+	/**
+	 * @ignore
+	 * @todo not used
+	 * @param array $aArgs
+	 * @param object $oItem
+	 * @return boolean
+	 */
+	public function onPopulateFileItem($aArgs, &$oItem)
+	{
+		if ($oItem && '.asc' === \strtolower(\substr(\trim($oItem->Name), -4)))
+		{
+			$oFilesDecorator = \Aurora\System\Api::GetModuleDecorator('Files');
+			if ($oFilesDecorator instanceof \Aurora\System\Module\Decorator)
+			{
+				$mResult = $oFilesDecorator->GetFileContent($aArgs['UserId'], $oItem->TypeStr, $oItem->Path, $oItem->Name);
+				if (isset($mResult))
+				{
+					$oItem->Content = $mResult;
+				}
+			}
+		}
+	}	
+	
+	public function onGetAttachmentContent($oAttachment, &$bResult)
+	{
+		$bResult = ($oAttachment && '.asc' === \strtolower(\substr(\trim($oAttachment->getFileName()), -4)));
 	}
 	
 	/***** public functions might be called with web API *****/
