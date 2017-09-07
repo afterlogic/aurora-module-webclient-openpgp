@@ -17,7 +17,9 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 {
 	public function init() 
 	{
-		$this->extendObject('Aurora\Modules\Core\Classes\User', array(
+		$this->extendObject(
+			'Aurora\Modules\Core\Classes\User', 
+			array(
 				'EnableModule'	=> array('bool', false),
 			)
 		);
