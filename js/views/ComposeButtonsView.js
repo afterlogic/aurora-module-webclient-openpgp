@@ -72,6 +72,35 @@ CComposeButtonsView.prototype.assignComposeExtInterface = function (oCompose)
 };
 
 /**
+ * @param {Object} oParameters
+ */
+CComposeButtonsView.prototype.doAfterApplyingMainTabParameters = function (oParameters)
+{
+	if (oParameters.OpenPgp)
+	{
+		this.pgpSecured(oParameters.OpenPgp.Secured);
+		this.pgpEncrypted(oParameters.OpenPgp.Encrypted);
+		this.fromDrafts(oParameters.OpenPgp.FromDrafts);
+		if (this.pgpSecured() || this.pgpEncrypted())
+		{
+			this.fromDrafts(true);
+		}
+	}
+};
+
+/**
+ * @param {Object} oParameters
+ */
+CComposeButtonsView.prototype.doAfterPreparingMainTabParameters = function (oParameters)
+{
+	oParameters.OpenPgp = {
+		Secured: this.pgpSecured(),
+		Encrypted: this.pgpEncrypted(),
+		FromDrafts: this.fromDrafts()
+	};
+};
+
+/**
  * Receives message properties that are displayed when opening the compose popup.
  * 
  * @param {Object} oMessageProps Receiving message properties.
@@ -175,10 +204,10 @@ CComposeButtonsView.prototype.openPgpPopup = function (fContinueSending)
 		var
 			bContinueSending = $.isFunction(fContinueSending),
 			fOkCallback = _.bind(function (sSignedEncryptedText, bEncrypted) {
-				if (!bContinueSending)
-				{
-					this.oCompose.saveSilently();
-				}
+//				if (!bContinueSending)
+//				{
+//					this.oCompose.saveSilently();
+//				}
 				
 				if (this.oCompose.isHtml())
 				{
