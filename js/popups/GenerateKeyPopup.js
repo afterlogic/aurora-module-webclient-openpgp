@@ -36,7 +36,7 @@ _.extendOwn(CGenerateKeyPopup.prototype, CAbstractPopup.prototype);
 
 CGenerateKeyPopup.prototype.PopupTemplate = '%ModuleName%_GenerateKeyPopup';
 
-CGenerateKeyPopup.prototype.onShow = function ()
+CGenerateKeyPopup.prototype.onOpen = function ()
 {
 	this.emails(ModulesManager.run('MailWebclient', 'getAllAccountsFullEmails'));
 	this.selectedEmail('');

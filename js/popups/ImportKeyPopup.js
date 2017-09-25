@@ -40,7 +40,7 @@ CImportKeyPopup.prototype.PopupTemplate = '%ModuleName%_ImportKeyPopup';
 /**
  * @param {string} sArmor
  */
-CImportKeyPopup.prototype.onShow = function (sArmor)
+CImportKeyPopup.prototype.onOpen = function (sArmor)
 {
 	this.keyArmor(sArmor || '');
 	this.keyArmorFocused(true);

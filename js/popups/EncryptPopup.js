@@ -64,7 +64,7 @@ CEncryptPopup.prototype.PopupTemplate = '%ModuleName%_EncryptPopup';
  * @param {Function} fOkCallback
  * @param {Function} fCancelCallback
  */
-CEncryptPopup.prototype.onShow = function (sData, sFromEmail, aEmails, bSignAndSend, fOkCallback, fCancelCallback)
+CEncryptPopup.prototype.onOpen = function (sData, sFromEmail, aEmails, bSignAndSend, fOkCallback, fCancelCallback)
 {
 	this.data(sData);
 	this.fromEmail(sFromEmail);

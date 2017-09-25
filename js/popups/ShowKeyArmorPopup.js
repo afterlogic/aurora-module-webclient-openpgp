@@ -68,7 +68,7 @@ CShowKeyArmorPopup.prototype.PopupTemplate = '%ModuleName%_ShowKeyArmorPopup';
 /**
  * @param {Object} oKey
  */
-CShowKeyArmorPopup.prototype.onShow = function (oKey)
+CShowKeyArmorPopup.prototype.onOpen = function (oKey)
 {
 	this.armor(oKey.getArmor());
 	this.user(oKey.getUser());
