@@ -2,5 +2,9 @@
     "Disabled": [
 		false,
 		"bool"
+	],
+    "AvailableFor": [
+		["MailWebclient"],
+		"array"
 	]
 }
