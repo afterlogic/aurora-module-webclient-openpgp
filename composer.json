@@ -6,8 +6,6 @@
 		"afterlogic/aurora-framework": "~0.6"
 	},
 	"extra": {
-		"installer-name": "OpenPgpWebclient",
-		"include-in-mobile": false,
-		"include-in-desktop": true
+		"installer-name": "OpenPgpWebclient"
 	}
 }
