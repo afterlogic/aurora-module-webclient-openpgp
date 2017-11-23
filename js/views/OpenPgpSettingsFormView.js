@@ -24,7 +24,7 @@ var
 /**
  * @constructor
  */
-function COpenPgpSettingsPaneView()
+function COpenPgpSettingsFormView()
 {
 	CAbstractSettingsFormView.call(this, Settings.ServerModuleName);
 	
@@ -57,16 +57,16 @@ function COpenPgpSettingsPaneView()
 	}, this);
 }
 
-_.extendOwn(COpenPgpSettingsPaneView.prototype, CAbstractSettingsFormView.prototype);
+_.extendOwn(COpenPgpSettingsFormView.prototype, CAbstractSettingsFormView.prototype);
 
-COpenPgpSettingsPaneView.prototype.ViewTemplate = '%ModuleName%_OpenPgpSettingsPaneView';
+COpenPgpSettingsFormView.prototype.ViewTemplate = '%ModuleName%_OpenPgpSettingsFormView';
 
-COpenPgpSettingsPaneView.prototype.importKey = function ()
+COpenPgpSettingsFormView.prototype.importKey = function ()
 {
 	Popups.showPopup(ImportKeyPopup);
 };
 
-COpenPgpSettingsPaneView.prototype.generateNewKey = function ()
+COpenPgpSettingsFormView.prototype.generateNewKey = function ()
 {
 	Popups.showPopup(GenerateKeyPopup);
 };
@@ -74,7 +74,7 @@ COpenPgpSettingsPaneView.prototype.generateNewKey = function ()
 /**
  * @param {Object} oKey
  */
-COpenPgpSettingsPaneView.prototype.removeOpenPgpKey = function (oKey)
+COpenPgpSettingsFormView.prototype.removeOpenPgpKey = function (oKey)
 {
 	var
 		sConfirm = '',
@@ -100,33 +100,33 @@ COpenPgpSettingsPaneView.prototype.removeOpenPgpKey = function (oKey)
 /**
  * @param {Object} oKey
  */
-COpenPgpSettingsPaneView.prototype.showArmor = function (oKey)
+COpenPgpSettingsFormView.prototype.showArmor = function (oKey)
 {
 	Popups.showPopup(ShowKeyArmorPopup, [oKey]);
 };
 
-COpenPgpSettingsPaneView.prototype.getCurrentValues = function ()
+COpenPgpSettingsFormView.prototype.getCurrentValues = function ()
 {
 	return [
 		this.enableOpenPgp()
 	];
 };
 
-COpenPgpSettingsPaneView.prototype.revertGlobalValues = function ()
+COpenPgpSettingsFormView.prototype.revertGlobalValues = function ()
 {
 	this.enableOpenPgp(Settings.enableOpenPgp());
 };
 
-COpenPgpSettingsPaneView.prototype.getParametersForSave = function ()
+COpenPgpSettingsFormView.prototype.getParametersForSave = function ()
 {
 	return {
 		'EnableModule': this.enableOpenPgp()
 	};
 };
 
-COpenPgpSettingsPaneView.prototype.applySavedValues = function (oParameters)
+COpenPgpSettingsFormView.prototype.applySavedValues = function (oParameters)
 {
 	Settings.update(oParameters.EnableModule);
 };
 
-module.exports = new COpenPgpSettingsPaneView();
+module.exports = new COpenPgpSettingsFormView();
