@@ -1,6 +1,11 @@
 'use strict';
 
-var ko = require('knockout');
+var
+	ko = require('knockout'),
+	_ = require('underscore'),
+	
+	Types = require('%PathToCoreWebclientModule%/js/utils/Types.js')
+;
 
 module.exports = {
 	ServerModuleName: '%ModuleName%',
@@ -8,14 +13,28 @@ module.exports = {
 	
 	enableOpenPgp: ko.observable(true),
 	
-	init: function (oAppDataSection) {
-		if (oAppDataSection)
+	/**
+	 * Initializes settings from AppData object sections.
+	 * 
+	 * @param {Object} oAppData Object contained modules settings.
+	 */
+	init: function (oAppData)
+	{
+		var oAppDataSection = oAppData['%ModuleName%'];
+		
+		if (!_.isEmpty(oAppDataSection))
 		{
-			this.enableOpenPgp(!!oAppDataSection.EnableModule);
+			this.enableOpenPgp(Types.pBool(oAppDataSection.EnableModule, this.enableOpenPgp()));
 		}
 	},
 	
-	update: function (bEnableOpenPgp) {
+	/**
+	 * Updates new settings values after saving on server.
+	 * 
+	 * @param {boolean} bEnableOpenPgp
+	 */
+	update: function (bEnableOpenPgp)
+	{
 		this.enableOpenPgp(bEnableOpenPgp);
 	}
 };

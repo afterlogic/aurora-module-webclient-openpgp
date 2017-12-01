@@ -22,11 +22,10 @@ module.exports = function (oAppData) {
 
 			TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
 
-			Settings = require('modules/%ModuleName%/js/Settings.js'),
-			oSettings = _.extend({}, oAppData[Settings.ServerModuleName] || {}, oAppData['%ModuleName%'] || {})
+			Settings = require('modules/%ModuleName%/js/Settings.js')
 		;
 
-		Settings.init(oSettings);
+		Settings.init(oAppData);
 
 		return {
 			start: function (ModulesManager) {
