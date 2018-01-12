@@ -24,7 +24,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 			)
 		);
 		
-		$this->subscribeEvent('Files::PopulateFileItem', array($this, 'onPopulateFileItem'));
+		$this->subscribeEvent('PopulateFileItem', array($this, 'onPopulateFileItem'));
 		$this->subscribeEvent('Mail::GetAttachmentContent', array($this, 'oGetAttachmentContent'));
 	}
 	
