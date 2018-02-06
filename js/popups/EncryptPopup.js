@@ -84,9 +84,23 @@ CEncryptPopup.prototype.executeSignEncrypt = function ()
 		sPrivateEmail = this.sign() ? this.fromEmail() : '',
 		aPrincipalsEmail = this.emails(),
 		sPrivateKeyPassword = this.sign() ? this.password() : '',
-		oRes = null,
 		sOkReport = '',
-		sPgpAction = ''
+		sPgpAction = '',
+		fOkHandler = _.bind(function (oRes) {
+			this.closePopup();
+			if (this.okCallback)
+			{
+				if (!this.signAndSend())
+				{
+					Utils.log('CEncryptPopup', sOkReport);
+					Screens.showReport(sOkReport);
+				}
+				this.okCallback(oRes.result, this.encrypt());
+			}
+		}, this),
+		fErrorHandler = function (oRes) {
+			ErrorsUtils.showPgpErrorByCode(oRes, sPgpAction);
+		}
 	;
 	
 	if (this.encrypt())
@@ -101,13 +115,13 @@ CEncryptPopup.prototype.executeSignEncrypt = function ()
 			{
 				sPgpAction = Enums.PgpAction.EncryptSign;
 				sOkReport = TextUtils.i18n('%MODULENAME%/REPORT_MESSAGE_SIGNED_ENCRYPTED_SUCCSESSFULLY');
-				oRes = OpenPgp.signAndEncrypt(sData, sPrivateEmail, aPrincipalsEmail, sPrivateKeyPassword);
+				OpenPgp.signAndEncrypt(sData, sPrivateEmail, aPrincipalsEmail, sPrivateKeyPassword, fOkHandler, fErrorHandler);
 			}
 			else
 			{
 				sPgpAction = Enums.PgpAction.Encrypt;
 				sOkReport = TextUtils.i18n('%MODULENAME%/REPORT_MESSAGE_ENCRYPTED_SUCCSESSFULLY');
-				oRes = OpenPgp.encrypt(sData, aPrincipalsEmail);
+				OpenPgp.encrypt(sData, aPrincipalsEmail, fOkHandler, fErrorHandler);
 			}
 		}
 	}
@@ -115,28 +129,7 @@ CEncryptPopup.prototype.executeSignEncrypt = function ()
 	{
 		sPgpAction = Enums.PgpAction.Sign;
 		sOkReport = TextUtils.i18n('%MODULENAME%/REPORT_MESSAGE_SIGNED_SUCCSESSFULLY');
-		oRes = OpenPgp.sign(sData, sPrivateEmail, sPrivateKeyPassword);
-	}
-	
-	if (oRes)
-	{
-		if (oRes.result)
-		{
-			this.closePopup();
-			if (this.okCallback)
-			{
-				if (!this.signAndSend())
-				{
-					Utils.log('CEncryptPopup', sOkReport);
-					Screens.showReport(sOkReport);
-				}
-				this.okCallback(oRes.result, this.encrypt());
-			}
-		}
-		else
-		{
-			ErrorsUtils.showPgpErrorByCode(oRes, sPgpAction);
-		}
+		OpenPgp.sign(sData, sPrivateEmail, sPrivateKeyPassword, fOkHandler, fErrorHandler);
 	}
 };
 

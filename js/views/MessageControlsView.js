@@ -2,6 +2,7 @@
 
 var
 	ko = require('knockout'),
+	_ = require('underscore'),
 			
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
 	
@@ -101,54 +102,61 @@ CMessageControlsView.prototype.decryptMessage = function ()
 {
 	var
 		sPrivateKeyPassword = this.decryptPassword(),
-		oRes = OpenPgp.decryptAndVerify(this.sText, this.sAccountEmail, this.sFromEmail, sPrivateKeyPassword),
-		bNoSignDataNotice = false
+		fOkHandler = _.bind(function (oRes) {
+			if (oRes && oRes.result && !oRes.errors && this.oMessagePane)
+			{
+				this.oMessagePane.changeText('<pre>' + TextUtils.encodeHtml(oRes.result) + '</pre>');
+
+				this.decryptPassword('');
+				this.visibleDecryptControl(false);
+
+				if (!oRes.notices)
+				{
+					Screens.showReport(TextUtils.i18n('%MODULENAME%/REPORT_MESSAGE_SUCCESSFULLY_DECRYPTED_AND_VERIFIED'));
+				}
+				else
+				{
+					Screens.showReport(TextUtils.i18n('%MODULENAME%/REPORT_MESSAGE_SUCCESSFULLY_DECRYPTED'));
+				}
+			}
+		}, this),
+		fErrorHandler = function (oRes) {
+			if (oRes && (oRes.errors || oRes.notices))
+			{
+				var bNoSignDataNotice = ErrorsUtils.showPgpErrorByCode(oRes, Enums.PgpAction.DecryptVerify);
+				if (bNoSignDataNotice)
+				{
+					Screens.showReport(TextUtils.i18n('%MODULENAME%/REPORT_MESSAGE_SUCCESSFULLY_DECRYPTED_AND_NOT_SIGNED'));
+				}
+			}
+		}
 	;
 	
-	if (oRes && oRes.result && !oRes.errors && this.oMessagePane)
-	{
-		this.oMessagePane.changeText('<pre>' + TextUtils.encodeHtml(oRes.result) + '</pre>');
-		
-		this.decryptPassword('');
-		this.visibleDecryptControl(false);
-		
-		if (!oRes.notices)
-		{
-			Screens.showReport(TextUtils.i18n('%MODULENAME%/REPORT_MESSAGE_SUCCESSFULLY_DECRYPTED_AND_VERIFIED'));
-		}
-		else
-		{
-			Screens.showReport(TextUtils.i18n('%MODULENAME%/REPORT_MESSAGE_SUCCESSFULLY_DECRYPTED'));
-		}
-	}
-	
-	if (oRes && (oRes.errors || oRes.notices))
-	{
-		bNoSignDataNotice = ErrorsUtils.showPgpErrorByCode(oRes, Enums.PgpAction.DecryptVerify);
-		if (bNoSignDataNotice)
-		{
-			Screens.showReport(TextUtils.i18n('%MODULENAME%/REPORT_MESSAGE_SUCCESSFULLY_DECRYPTED_AND_NOT_SIGNED'));
-		}
-	}
+	OpenPgp.decryptAndVerify(this.sText, this.sAccountEmail, this.sFromEmail, sPrivateKeyPassword, fOkHandler, fErrorHandler);
 };
 
 CMessageControlsView.prototype.verifyMessage = function ()
 {
-	var oRes = OpenPgp.verify(this.sText, this.sFromEmail);
+	var
+		fOkHandler = _.bind(function (oRes) {
+			if (oRes && oRes.result && !(oRes.errors || oRes.notices) && this.oMessagePane)
+			{
+				this.oMessagePane.changeText('<pre>' + TextUtils.encodeHtml(oRes.result) + '</pre>');
+
+				this.visibleVerifyControl(false);
+
+				Screens.showReport(TextUtils.i18n('%MODULENAME%/REPORT_MESSAGE_SUCCESSFULLY_VERIFIED'));
+			}
+		}, this),
+		fErrorHandler = function (oRes) {
+			if (oRes && (oRes.errors || oRes.notices))
+			{
+				ErrorsUtils.showPgpErrorByCode(oRes, Enums.PgpAction.Verify);
+			}
+		}
+	;
 	
-	if (oRes && oRes.result && !(oRes.errors || oRes.notices) && this.oMessagePane)
-	{
-		this.oMessagePane.changeText('<pre>' + TextUtils.encodeHtml(oRes.result) + '</pre>');
-		
-		this.visibleVerifyControl(false);
-		
-		Screens.showReport(TextUtils.i18n('%MODULENAME%/REPORT_MESSAGE_SUCCESSFULLY_VERIFIED'));
-	}
-	
-	if (oRes && (oRes.errors || oRes.notices))
-	{
-		ErrorsUtils.showPgpErrorByCode(oRes, Enums.PgpAction.Verify);
-	}
+	OpenPgp.verify(this.sText, this.sFromEmail, fOkHandler, fErrorHandler);
 };
 
 module.exports = new CMessageControlsView();

@@ -47,25 +47,23 @@ CGenerateKeyPopup.prototype.onOpen = function ()
 
 CGenerateKeyPopup.prototype.generate = function ()
 {
+	var
+		fKeysGenerated = _.bind(function () {
+			Screens.showReport(TextUtils.i18n('%MODULENAME%/REPORT_KEY_SUCCESSFULLY_GENERATED'));
+			this.process(false);
+			this.closePopup();
+		}, this),
+		fKeysGenerateError = _.bind(function () {
+			ErrorsUtils.showPgpErrorByCode({}, Enums.PgpAction.Generate);
+			this.process(false);
+			this.closePopup();
+		}, this)
+	;
+	
 	this.process(true);
 	_.delay(_.bind(function () {
-		var oRes = OpenPgp.generateKey(this.selectedEmail(), this.password(), this.selectedKeyLength());
-
-		if (oRes && oRes.result)
-		{
-			Screens.showReport(TextUtils.i18n('%MODULENAME%/REPORT_KEY_SUCCESSFULLY_GENERATED'));
-		}
-
-		if (oRes && !oRes.result)
-		{
-			this.process(false);
-			ErrorsUtils.showPgpErrorByCode(oRes, Enums.PgpAction.Generate);
-		}
-		else
-		{
-			this.closePopup();
-		}
-	}, this), 50);
+		OpenPgp.generateKey(this.selectedEmail(), this.password(), this.selectedKeyLength(), fKeysGenerated, fKeysGenerateError);
+	}, this));
 };
 
 module.exports = new CGenerateKeyPopup();
