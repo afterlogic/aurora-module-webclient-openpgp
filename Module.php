@@ -24,7 +24,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 			)
 		);
 		
-		$this->subscribeEvent('PopulateFileItem', array($this, 'onPopulateFileItem'));
+		$this->subscribeEvent('Files::PopulateFileItem::after', array($this, 'onAfterPopulateFileItem'));
 		$this->subscribeEvent('Mail::GetAttachmentContent', array($this, 'oGetAttachmentContent'));
 	}
 	
@@ -35,7 +35,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 	 * @param object $oItem
 	 * @return boolean
 	 */
-	public function onPopulateFileItem($aArgs, &$oItem)
+	public function onAfterPopulateFileItem($aArgs, &$oItem)
 	{
 		if ($oItem && '.asc' === \strtolower(\substr(\trim($oItem->Name), -4)))
 		{
