@@ -38,18 +38,11 @@ module.exports = function (oAppData) {
 					ModulesManager.run('SettingsWebclient', 'registerSettingsTab', [function () { return require('modules/%ModuleName%/js/views/OpenPgpSettingsFormView.js'); }, Settings.HashModuleName, TextUtils.i18n('%MODULENAME%/LABEL_SETTINGS_TAB')]);
 					
 					App.subscribeEvent('FilesWebclient::ParseFile::after', function (oFile) {
-						if (oFile && _.isFunction(oFile.addAction) && Utils.getFileExtension(oFile.fileName()) === 'asc')
+						if (oFile && _.isFunction(oFile.addAction) && Utils.getFileExtension(oFile.fileName()) === 'asc' && oFile.content && oFile.content())
 						{
 							var oActionData = {
 								'Text': TextUtils.i18n('%MODULENAME%/ACTION_FILE_IMPORT_KEY'),
-								'Handler': function () {
-									Ajax.send('Files', 'DownloadFile', {'Type':oFile.storageType(),'Name':oFile.fileName(),'Path':oFile.path()}, function (oResponse) {
-										if (oResponse.ResponseText)
-										{
-											Popups.showPopup(ImportKeyPopup, [oResponse.ResponseText]);
-										}
-									}, this, undefined, {'Format': 'Raw'});
-								}
+								'Handler': function () { Popups.showPopup(ImportKeyPopup, [oFile.content()]); }
 							};
 							oFile.addAction('import', true, oActionData);
 						}

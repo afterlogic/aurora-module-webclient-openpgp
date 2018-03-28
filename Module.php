@@ -42,7 +42,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 			$oFilesDecorator = \Aurora\System\Api::GetModuleDecorator('Files');
 			if ($oFilesDecorator instanceof \Aurora\System\Module\Decorator)
 			{
-				$mResult = $oFilesDecorator->GetFileContent($oItem->TypeStr, $oItem->Path, $oItem->Name);
+				$mResult = $oFilesDecorator->GetFileContent($aArgs['UserId'], $oItem->TypeStr, $oItem->Path, $oItem->Name);
 				if (isset($mResult))
 				{
 					$oItem->Content = $mResult;
