@@ -2,6 +2,7 @@
 
 var
 	_ = require('underscore'),
+	$ = require('jquery'),
 	ko = require('knockout'),
 	
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
@@ -62,7 +63,7 @@ CGenerateKeyPopup.prototype.generate = function ()
 	
 	this.process(true);
 	_.delay(_.bind(function () {
-		OpenPgp.generateKey(this.selectedEmail(), this.password(), this.selectedKeyLength(), fKeysGenerated, fKeysGenerateError);
+		OpenPgp.generateKey(this.selectedEmail(), $.trim(this.password()), this.selectedKeyLength(), fKeysGenerated, fKeysGenerateError);
 	}, this));
 };
 

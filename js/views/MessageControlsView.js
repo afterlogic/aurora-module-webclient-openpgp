@@ -1,9 +1,10 @@
 'use strict';
 
 var
-	ko = require('knockout'),
 	_ = require('underscore'),
-			
+	$ = require('jquery'),
+	ko = require('knockout'),
+	
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
 	
 	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
@@ -101,7 +102,7 @@ CMessageControlsView.prototype.doAfterPopulatingMessage = function (oMessageProp
 CMessageControlsView.prototype.decryptMessage = function ()
 {
 	var
-		sPrivateKeyPassword = this.decryptPassword(),
+		sPrivateKeyPassword = $.trim(this.decryptPassword()),
 		fOkHandler = _.bind(function (oRes) {
 			if (oRes && oRes.result && !oRes.errors && this.oMessagePane)
 			{

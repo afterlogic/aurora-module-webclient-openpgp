@@ -2,6 +2,7 @@
 
 var
 	_ = require('underscore'),
+	$ = require('jquery'),
 	ko = require('knockout'),
 	
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
@@ -83,7 +84,7 @@ CEncryptPopup.prototype.executeSignEncrypt = function ()
 		sData = this.data(),
 		sPrivateEmail = this.sign() ? this.fromEmail() : '',
 		aPrincipalsEmail = this.emails(),
-		sPrivateKeyPassword = this.sign() ? this.password() : '',
+		sPrivateKeyPassword = this.sign() ? $.trim(this.password()) : '',
 		sOkReport = '',
 		sPgpAction = '',
 		fOkHandler = _.bind(function (oRes) {
