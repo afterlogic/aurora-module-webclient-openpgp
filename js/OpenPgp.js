@@ -496,6 +496,24 @@ COpenPgp.prototype.findKeysByEmails = function (aEmail, bIsPublic, oResult)
 };
 
 /**
+ * @param {object} oKey
+ * @param {string} sPrivateKeyPassword
+ * @returns {object}
+ */
+COpenPgp.prototype.verifyKeyPassword = function (oKey, sPrivateKeyPassword)
+{
+	var
+		oResult = new COpenPgpResult(),
+		oPrivateKey = this.convertToNativeKeys([oKey])[0],
+		oPrivateKeyClone = this.cloneKey(oPrivateKey)
+	;
+	
+	this.decryptKeyHelper(oResult, oPrivateKeyClone, sPrivateKeyPassword, '');
+	
+	return oResult;
+};
+
+/**
  * @param {string} sData
  * @param {string} sAccountEmail
  * @param {string} sFromEmail

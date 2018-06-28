@@ -62,6 +62,10 @@ ErrorsUtils.showPgpErrorByCode = function (oRes, sPgpAction, sDefaultError)
 					{
 						sError = TextUtils.i18n('%MODULENAME%/ERROR_SIGN') + ' ' + TextUtils.i18n('%MODULENAME%/ERROR_KEY_NOT_DECODED', {'USER': aError[1]});
 					}
+					else
+					{
+						sError = TextUtils.i18n('%MODULENAME%/ERROR_KEY_NOT_DECODED', {'USER': aError[1]});
+					}
 					break;
 				case Enums.OpenPgpErrors.SignError:
 					sError = TextUtils.i18n('%MODULENAME%/ERROR_SIGN');

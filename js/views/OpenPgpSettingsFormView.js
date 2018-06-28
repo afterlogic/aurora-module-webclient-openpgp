@@ -16,6 +16,7 @@ var
 	GenerateKeyPopup = require('modules/%ModuleName%/js/popups/GenerateKeyPopup.js'),
 	ImportKeyPopup = require('modules/%ModuleName%/js/popups/ImportKeyPopup.js'),
 	ShowKeyArmorPopup = require('modules/%ModuleName%/js/popups/ShowKeyArmorPopup.js'),
+	VerifyPasswordPopup = require('modules/%ModuleName%/js/popups/VerifyPasswordPopup.js'),
 	
 	OpenPgp = require('modules/%ModuleName%/js/OpenPgp.js'),
 	Settings = require('modules/%ModuleName%/js/Settings.js')
@@ -95,6 +96,18 @@ COpenPgpSettingsFormView.prototype.removeOpenPgpKey = function (oKey)
 		sConfirm = TextUtils.i18n('%MODULENAME%/CONFIRM_DELETE_KEY', {'KEYEMAIL': oKey.getEmail()});
 		Popups.showPopup(ConfirmPopup, [sConfirm, fRemove]);
 	}
+};
+
+/**
+ * @param {Object} oKey
+ */
+COpenPgpSettingsFormView.prototype.verifyPassword = function (oKey)
+{
+	var fShowArmor = function () {
+		this.showArmor(oKey);
+	}.bind(this);
+	
+	Popups.showPopup(VerifyPasswordPopup, [oKey, fShowArmor]);
 };
 
 /**
