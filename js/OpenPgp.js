@@ -265,8 +265,10 @@ COpenPgp.prototype.splitKeys = function (sArmor)
 		oReg = /[\-]{3,6}BEGIN[\s]PGP[\s](PRIVATE|PUBLIC)[\s]KEY[\s]BLOCK[\-]{3,6}[\s\S]+?[\-]{3,6}END[\s]PGP[\s](PRIVATE|PUBLIC)[\s]KEY[\s]BLOCK[\-]{3,6}/gi
 	;
 
-	sKey = sKey.replace(/[\r\n]([a-zA-Z0-9]{2,}:[^\r\n]+)[\r\n]+([a-zA-Z0-9\/\\+=]{10,})/g, '\n$1---xyx---$2')
-		.replace(/[\n\r]+/g, '\n').replace(/---xyx---/g, '\n\n');
+//	If the key doesn't have any additional fields (for example "Version: 1.1"), this transformation corrupts the key.
+//	Seems like it is unnecessary transformation. Everything works fine without it.
+//	sKey = sKey.replace(/[\r\n]([a-zA-Z0-9]{2,}:[^\r\n]+)[\r\n]+([a-zA-Z0-9\/\\+=]{10,})/g, '\n$1---xyx---$2')
+//		.replace(/[\n\r]+/g, '\n').replace(/---xyx---/g, '\n\n');
 
 	do
 	{
