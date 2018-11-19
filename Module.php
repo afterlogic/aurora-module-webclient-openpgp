@@ -18,12 +18,12 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 {
 	public function init() 
 	{
-		$this->extendObject(
-			'Aurora\Modules\Core\Classes\User', 
-			array(
+		\Aurora\Modules\Core\Classes\User::extend(
+			self::GetName(),
+			[
 				'EnableModule'	=> array('bool', false),
-			)
-		);
+			]
+		);		
 		
 		$this->subscribeEvent('Files::PopulateFileItem::after', array($this, 'onAfterPopulateFileItem'));
 		$this->subscribeEvent('Mail::GetAttachmentContent', array($this, 'oGetAttachmentContent'));
@@ -71,9 +71,9 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
 		if ($oUser && $oUser->Role === \Aurora\System\Enums\UserRole::NormalUser)
 		{
-			if (isset($oUser->{$this->GetName().'::EnableModule'}))
+			if (isset($oUser->{self::GetName().'::EnableModule'}))
 			{
-				$aSettings['EnableModule'] = $oUser->{$this->GetName().'::EnableModule'};
+				$aSettings['EnableModule'] = $oUser->{self::GetName().'::EnableModule'};
 			}
 		}
 		return $aSettings;
@@ -89,7 +89,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 			if ($oUser->Role === \Aurora\System\Enums\UserRole::NormalUser)
 			{
 				$oCoreDecorator = \Aurora\Modules\Core\Module::Decorator();
-				$oUser->{$this->GetName().'::EnableModule'} = $EnableModule;
+				$oUser->{self::GetName().'::EnableModule'} = $EnableModule;
 				return $oCoreDecorator->UpdateUserObject($oUser);
 			}
 			if ($oUser->Role === \Aurora\System\Enums\UserRole::SuperAdmin)
