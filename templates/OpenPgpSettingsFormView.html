@@ -62,6 +62,9 @@
 			</div>
 		</div>
 		<div class="buttons" data-bind="visible: enableOpenPgp">
+			<span data-bind="click: exportAllPublicKeys" class="button">
+				<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_EXPORT_ALL_PUBLIC_KEYS'}"></span>
+			</span>
 			<span data-bind="click: importKey" class="button">
 				<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_IMPORT_KEY'}"></span>
 			</span>

@@ -16,6 +16,7 @@ var
 	GenerateKeyPopup = require('modules/%ModuleName%/js/popups/GenerateKeyPopup.js'),
 	ImportKeyPopup = require('modules/%ModuleName%/js/popups/ImportKeyPopup.js'),
 	ShowKeyArmorPopup = require('modules/%ModuleName%/js/popups/ShowKeyArmorPopup.js'),
+	ShowPublicKeysArmorPopup = require('modules/%ModuleName%/js/popups/ShowPublicKeysArmorPopup.js'),
 	VerifyPasswordPopup = require('modules/%ModuleName%/js/popups/VerifyPasswordPopup.js'),
 	
 	OpenPgp = require('modules/%ModuleName%/js/OpenPgp.js'),
@@ -61,6 +62,20 @@ function COpenPgpSettingsFormView()
 _.extendOwn(COpenPgpSettingsFormView.prototype, CAbstractSettingsFormView.prototype);
 
 COpenPgpSettingsFormView.prototype.ViewTemplate = '%ModuleName%_OpenPgpSettingsFormView';
+
+COpenPgpSettingsFormView.prototype.exportAllPublicKeys = function ()
+{
+	var sArmors = '';
+	
+	_.each(this.publicKeys(), function (oKey) {
+		sArmors += oKey.armor;
+	});
+	
+	if (sArmors !== '')
+	{
+		Popups.showPopup(ShowPublicKeysArmorPopup, [sArmors]);
+	}
+};
 
 COpenPgpSettingsFormView.prototype.importKey = function ()
 {
