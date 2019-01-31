@@ -7,6 +7,8 @@ var
 			
 	Utils = require('%PathToCoreWebclientModule%/js/utils/Common.js'),
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
+	
+	App = require('%PathToCoreWebclientModule%/js/App.js'),
 	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
 	
 	Popups = require('%PathToCoreWebclientModule%/js/Popups.js'),
@@ -22,6 +24,7 @@ var
 function CComposeButtonsView()
 {
 	this.sId = 'OpenPgp';
+	this.bAllowMobile = true;
 	
 	this.enableOpenPgp = Settings.enableOpenPgp;
 	
@@ -48,7 +51,7 @@ function CComposeButtonsView()
 	this.bComposeModeChanged = false;
 }
 
-CComposeButtonsView.prototype.ViewTemplate = '%ModuleName%_ComposeButtonsView';
+CComposeButtonsView.prototype.ViewTemplate = App.isMobile() ? '%ModuleName%_ComposeButtonsMobileView' : '%ModuleName%_ComposeButtonsView';
 
 /**
  * Assigns compose external interface.
