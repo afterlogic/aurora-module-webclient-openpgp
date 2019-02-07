@@ -52,6 +52,7 @@ module.exports = function (oAppData) {
 								'Handler': function () { Popups.showPopup(ImportKeyPopup, [oFile.content()]); }
 							};
 							oFile.addAction('import', true, oActionData);
+							oFile.removeAction('view');
 						}
 					});
 					
