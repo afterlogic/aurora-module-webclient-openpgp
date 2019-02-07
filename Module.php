@@ -26,7 +26,8 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 		);		
 		
 		$this->subscribeEvent('Files::PopulateFileItem::after', array($this, 'onAfterPopulateFileItem'));
-		$this->subscribeEvent('Mail::GetAttachmentContent', array($this, 'oGetAttachmentContent'));
+		$this->subscribeEvent('Mail::GetBodyStructureParts', array($this, 'onGetBodyStructureParts'));
+		$this->subscribeEvent('Mail::ExtendMessageData', array($this, 'onExtendMessageData'));
 	}
 	
 	/**
@@ -52,9 +53,36 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 		}
 	}	
 	
-	public function onGetAttachmentContent($oAttachment, &$bResult)
+	public function onGetBodyStructureParts($aParts, &$aResultParts)
 	{
-		$bResult = ($oAttachment && '.asc' === \strtolower(\substr(\trim($oAttachment->getFileName()), -4)));
+		foreach ($aParts as $oPart)
+		{
+			if ($oPart instanceof \MailSo\Imap\BodyStructure && $oPart->ContentType() === 'text/plain' && '.asc' === \strtolower(\substr(\trim($oPart->FileName()), -4)))
+			{
+				$aResultParts[] = $oPart;
+			}
+		}
+	}
+	
+	public function onExtendMessageData($aData, &$oMessage)
+	{
+		foreach ($aData as $aDataItem)
+		{
+			$oPart = $aDataItem['Part'];
+			$bAsc = $oPart instanceof \MailSo\Imap\BodyStructure && $oPart->ContentType() === 'text/plain' && '.asc' === \strtolower(\substr(\trim($oPart->FileName()), -4));
+			$sData = $aDataItem['Data'];
+			if ($bAsc)
+			{
+				$iMimeIndex = $oPart->PartID();
+				foreach ($oMessage->getAttachments()->GetAsArray() as $oAttachment)
+				{
+					if ($iMimeIndex === $oAttachment->getMimeIndex())
+					{
+						$oAttachment->setContent($sData);
+					}
+				}
+			}
+		}
 	}
 	
 	/***** public functions might be called with web API *****/
