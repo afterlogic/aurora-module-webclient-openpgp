@@ -44,7 +44,10 @@ module.exports = function (oAppData) {
 					}
 					ModulesManager.run('SettingsWebclient', 'registerSettingsTab', [function () { return require('modules/%ModuleName%/js/views/OpenPgpSettingsFormView.js'); }, Settings.HashModuleName, TextUtils.i18n('%MODULENAME%/LABEL_SETTINGS_TAB')]);
 					
-					App.subscribeEvent('FilesWebclient::ParseFile::after', function (oFile) {
+					App.subscribeEvent('FilesWebclient::ParseFile::after', function (aParams) {
+						var
+							oFile = aParams[0]
+						;
 						if (oFile && _.isFunction(oFile.addAction) && Utils.getFileExtension(oFile.fileName()) === 'asc' && oFile.content && oFile.content())
 						{
 							var oActionData = {
