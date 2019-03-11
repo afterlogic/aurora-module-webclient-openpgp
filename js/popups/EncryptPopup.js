@@ -112,17 +112,21 @@ CEncryptPopup.prototype.executeSignEncrypt = function ()
 		}
 		else
 		{
+			var
+				aUserEmail = [sPrivateEmail],
+				aEmailForEncrypt = OpenPgp.findKeysByEmails(aUserEmail, true).length > 0 ? _.union(aPrincipalsEmail, aUserEmail) : aPrincipalsEmail
+			;
 			if (this.sign())
 			{
 				sPgpAction = Enums.PgpAction.EncryptSign;
 				sOkReport = TextUtils.i18n('%MODULENAME%/REPORT_MESSAGE_SIGNED_ENCRYPTED_SUCCSESSFULLY');
-				OpenPgp.signAndEncrypt(sData, sPrivateEmail, aPrincipalsEmail, sPrivateKeyPassword, fOkHandler, fErrorHandler);
+				OpenPgp.signAndEncrypt(sData, sPrivateEmail, aEmailForEncrypt, sPrivateKeyPassword, fOkHandler, fErrorHandler);
 			}
 			else
 			{
 				sPgpAction = Enums.PgpAction.Encrypt;
 				sOkReport = TextUtils.i18n('%MODULENAME%/REPORT_MESSAGE_ENCRYPTED_SUCCSESSFULLY');
-				OpenPgp.encrypt(sData, aPrincipalsEmail, fOkHandler, fErrorHandler);
+				OpenPgp.encrypt(sData, aEmailForEncrypt, fOkHandler, fErrorHandler);
 			}
 		}
 	}
