@@ -8,6 +8,7 @@ var
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
 	Utils = require('%PathToCoreWebclientModule%/js/utils/Common.js'),
 	
+	App = require('%PathToCoreWebclientModule%/js/App.js'),
 	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
 	
 	CAbstractPopup = require('%PathToCoreWebclientModule%/js/popups/CAbstractPopup.js'),
@@ -24,6 +25,8 @@ var
 function CEncryptPopup()
 {
 	CAbstractPopup.call(this);
+	
+	this.bMobile = App.isMobile();
 	
 	this.data = ko.observable('');
 	this.fromEmail = ko.observable('');
