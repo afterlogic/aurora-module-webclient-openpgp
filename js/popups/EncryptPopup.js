@@ -116,7 +116,7 @@ CEncryptPopup.prototype.executeSignEncrypt = function ()
 		else
 		{
 			var
-				aUserEmail = [sPrivateEmail],
+				aUserEmail = [this.fromEmail()],
 				aEmailForEncrypt = OpenPgp.findKeysByEmails(aUserEmail, true).length > 0 ? _.union(aPrincipalsEmail, aUserEmail) : aPrincipalsEmail
 			;
 			if (this.sign())
