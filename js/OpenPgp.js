@@ -498,6 +498,28 @@ COpenPgp.prototype.findKeysByEmails = function (aEmail, bIsPublic, oResult)
 };
 
 /**
+ * @param {type} aEmail
+ * @returns {Array}
+ */
+COpenPgp.prototype.getPublicKeysIfExistsByEmail = function (sEmail)
+{
+	var
+		aResult = [],
+		aKeys = this.keys(),
+		oKey = _.find(aKeys, function (oKey) {
+			return oKey && oKey.isPublic() === true && sEmail === oKey.getEmail();
+		})
+	;
+
+	if (oKey)
+	{
+		aResult.push(oKey);
+	}
+
+	return aResult;
+};
+
+/**
  * @param {object} oKey
  * @param {string} sPrivateKeyPassword
  * @returns {object}
@@ -531,7 +553,7 @@ COpenPgp.prototype.decryptAndVerify = function (sData, sAccountEmail, sFromEmail
 		aPrivateKeys = this.findKeysByEmails([sAccountEmail], false, oResult),
 		oPrivateKey = this.convertToNativeKeys(aPrivateKeys)[0],
 		oPrivateKeyClone = this.cloneKey(oPrivateKey),
-		aPublicKeys = this.findKeysByEmails([sFromEmail], true, oResult),
+		aPublicKeys = this.getPublicKeysIfExistsByEmail(sFromEmail),
 		oOptions = {
 			message: openpgp.message.readArmored(sData), // parse armored message
 			publicKeys: this.convertToNativeKeys(aPublicKeys), // for verification (optional)
@@ -554,6 +576,13 @@ COpenPgp.prototype.decryptAndVerify = function (sData, sAccountEmail, sFromEmail
 			oOptions.privateKey = oPrivateKeyClone; // for decryption
 			openpgp.decrypt(oOptions).then(function(oPgpResult) {
 				oResult.result = oPgpResult.data;
+
+				//if result contains invalid signatures
+				if (oPgpResult.signatures.length > 0 && _.filter(oPgpResult.signatures, oSignature => oSignature.valid !== true).length > 0)
+				{
+					oResult.addNotice(Enums.OpenPgpErrors.VerifyErrorNotice, sFromEmail);
+				}
+
 				if (_.isFunction(fOkHandler))
 				{
 					fOkHandler(oResult);

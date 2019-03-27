@@ -94,6 +94,11 @@ ErrorsUtils.showPgpErrorByCode = function (oRes, sPgpAction, sDefaultError)
 				case Enums.OpenPgpErrors.NoSignDataNotice:
 					bNoSignDataNotice = true;
 					break;
+				case Enums.OpenPgpErrors.CanNotReadMessage:
+					sError = TextUtils.i18n('%MODULENAME%/ERROR_CAN_NOT_READ_MESSAGE');
+					break;
+				default:
+					sError = TextUtils.i18n('COREWEBCLIENT/ERROR_UNKNOWN');
 			}
 		}
 	});

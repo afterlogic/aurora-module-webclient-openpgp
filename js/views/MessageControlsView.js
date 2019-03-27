@@ -117,7 +117,7 @@ CMessageControlsView.prototype.decryptMessage = function ()
 				}
 				else
 				{
-					Screens.showReport(TextUtils.i18n('%MODULENAME%/REPORT_MESSAGE_SUCCESSFULLY_DECRYPTED'));
+					Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_MESSAGE_SUCCESSFULLY_DECRYPTED_BUT_NOT_VERIFIED'));
 				}
 			}
 		}, this),
