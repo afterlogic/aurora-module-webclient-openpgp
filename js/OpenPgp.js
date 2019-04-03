@@ -558,7 +558,8 @@ COpenPgp.prototype.decryptAndVerify = function (sData, sAccountEmail, sFromEmail
 			message: openpgp.message.readArmored(sData), // parse armored message
 			publicKeys: this.convertToNativeKeys(aPublicKeys), // for verification (optional)
 			passphrase: sPrivateKeyPassword
-		}
+		},
+		aInvalidSignatures = []
 	;
 	
 	if (oPrivateKeyClone)
@@ -578,7 +579,11 @@ COpenPgp.prototype.decryptAndVerify = function (sData, sAccountEmail, sFromEmail
 				oResult.result = oPgpResult.data;
 
 				//if result contains invalid signatures
-				if (oPgpResult.signatures.length > 0 && _.filter(oPgpResult.signatures, oSignature => oSignature.valid !== true).length > 0)
+				aInvalidSignatures = _.filter(oPgpResult.signatures, function (oSignature) {
+						return oSignature.valid !== true;
+					}
+				);
+				if (oPgpResult.signatures.length > 0 && aInvalidSignatures.length > 0)
 				{
 					oResult.addNotice(Enums.OpenPgpErrors.VerifyErrorNotice, sFromEmail);
 				}
