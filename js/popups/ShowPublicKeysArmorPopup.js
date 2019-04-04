@@ -7,9 +7,11 @@ var
 	
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
 	
-	ModulesManager = require('%PathToCoreWebclientModule%/js/ModulesManager.js'),
-	ComposeMessageWithAttachments = ModulesManager.run('MailWebclient', 'getComposeMessageWithAttachments'),
 	Ajax = require('%PathToCoreWebclientModule%/js/Ajax.js'),
+	ModulesManager = require('%PathToCoreWebclientModule%/js/ModulesManager.js'),
+	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
+	
+	ComposeMessageWithAttachments = ModulesManager.run('MailWebclient', 'getComposeMessageWithAttachments'),
 	
 	CAbstractPopup = require('%PathToCoreWebclientModule%/js/popups/CAbstractPopup.js')
 ;
@@ -95,6 +97,11 @@ CShowKeyArmorPopup.prototype.select = function ()
 		oSel = window.getSelection();
 		oSel.removeAllRanges();
 		oSel.addRange(oRange);
+		if (document.queryCommandSupported('copy'))
+		{
+			document.execCommand('copy');
+			Screens.showReport(TextUtils.i18n('%MODULENAME%/REPORT_KEY_IN_CLIPBOARD'));
+		}
 	}
 };
 
