@@ -8,14 +8,14 @@ function IsPgpSupported()
 module.exports = function (oAppData) {
 	var
 		Utils = require('%PathToCoreWebclientModule%/js/utils/Common.js'),
-		Ajax = require('%PathToCoreWebclientModule%/js/Ajax.js'),
+				
 		App = require('%PathToCoreWebclientModule%/js/App.js'),
 		
 		Popups = require('%PathToCoreWebclientModule%/js/Popups.js'),
 		ImportKeyPopup = require('modules/%ModuleName%/js/popups/ImportKeyPopup.js')
 	;
 	
-	if (App.getUserRole() === Enums.UserRole.NormalUser)
+	if (App.isUserNormalOrTenant())
 	{
 		var
 			_ = require('underscore'),

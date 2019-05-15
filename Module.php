@@ -97,7 +97,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 		
 		$aSettings = array();
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
-		if ($oUser && $oUser->Role === \Aurora\System\Enums\UserRole::NormalUser)
+		if ($oUser && $oUser->isNormalOrTenant())
 		{
 			if (isset($oUser->{self::GetName().'::EnableModule'}))
 			{
@@ -114,7 +114,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
 		if ($oUser)
 		{
-			if ($oUser->Role === \Aurora\System\Enums\UserRole::NormalUser)
+			if ($oUser->isNormalOrTenant())
 			{
 				$oCoreDecorator = \Aurora\Modules\Core\Module::Decorator();
 				$oUser->{self::GetName().'::EnableModule'} = $EnableModule;
