@@ -12,7 +12,7 @@ module.exports = function (oAppData) {
 		App = require('%PathToCoreWebclientModule%/js/App.js'),
 		
 		Popups = require('%PathToCoreWebclientModule%/js/Popups.js'),
-		ImportKeyPopup = require('modules/%ModuleName%/js/popups/ImportKeyPopup.js')
+		ImportKeyPopup = null // ImportKeyPopup requires the OpenPGP library, so it should be required after verifying PGP support only
 	;
 	
 	if (App.isUserNormalOrTenant())
@@ -31,6 +31,7 @@ module.exports = function (oAppData) {
 			start: function (ModulesManager) {
 				if (IsPgpSupported())
 				{
+					ImportKeyPopup = require('modules/%ModuleName%/js/popups/ImportKeyPopup.js');
 					App.subscribeEvent('MailWebclient::RegisterMessagePaneController', function (fRegisterMessagePaneController) {
 						fRegisterMessagePaneController(require('modules/%ModuleName%/js/views/MessageControlsView.js'), 'BeforeMessageHeaders');
 					});
