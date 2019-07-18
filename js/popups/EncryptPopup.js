@@ -96,7 +96,6 @@ CEncryptPopup.prototype.executeSignEncrypt = function ()
 			{
 				if (!this.signAndSend())
 				{
-					Utils.log('CEncryptPopup', sOkReport);
 					Screens.showReport(sOkReport);
 				}
 				this.okCallback(oRes.result, this.encrypt());
