@@ -31,6 +31,7 @@ function CGenerateKeyPopup()
 	this.keyLengthOptions = [1024, 2048];
 	this.selectedKeyLength = ko.observable(1024);
 	this.process = ko.observable(false);
+	this.keysExistText = ko.observable('');
 }
 
 _.extendOwn(CGenerateKeyPopup.prototype, CAbstractPopup.prototype);
@@ -39,7 +40,28 @@ CGenerateKeyPopup.prototype.PopupTemplate = '%ModuleName%_GenerateKeyPopup';
 
 CGenerateKeyPopup.prototype.onOpen = function ()
 {
-	this.emails(ModulesManager.run('MailWebclient', 'getAllAccountsFullEmails') || []);
+	var
+		aEmails = ModulesManager.run('MailWebclient', 'getAllAccountsFullEmails') || [],
+		aEmailsToUse = []
+	;
+	
+	_.each(aEmails, function (sEmail) {
+		var
+			aPubKeys = OpenPgp.findKeysByEmails([sEmail], true),
+			aPrivKeys = OpenPgp.findKeysByEmails([sEmail], false)
+		;
+		if (aPubKeys.length === 0 && aPrivKeys.length === 0)
+		{
+			aEmailsToUse.push(sEmail);
+		}
+	});
+	
+	if (aEmailsToUse.length === 0)
+	{
+		this.keysExistText(TextUtils.i18n('%MODULENAME%/INFO_KEYS_EXIST_PLURAL', null, null, aEmails.length));
+	}
+	
+	this.emails(aEmailsToUse);
 	this.selectedEmail('');
 	this.password('');
 	this.selectedKeyLength(2048);
@@ -48,6 +70,11 @@ CGenerateKeyPopup.prototype.onOpen = function ()
 
 CGenerateKeyPopup.prototype.generate = function ()
 {
+	if (this.emails().length === 0)
+	{
+		return;
+	}
+	
 	var
 		fKeysGenerated = _.bind(function () {
 			Screens.showReport(TextUtils.i18n('%MODULENAME%/REPORT_KEY_SUCCESSFULLY_GENERATED'));
