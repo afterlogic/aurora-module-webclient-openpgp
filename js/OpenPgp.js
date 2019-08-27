@@ -9,8 +9,7 @@ var
 	Types = require('%PathToCoreWebclientModule%/js/utils/Types.js'),
 	
 	App = require('%PathToCoreWebclientModule%/js/App.js'),
-	
-	openpgp = require('modules/%ModuleName%/js/vendors/openpgp.js'),
+	openpgp = require('%PathToCoreWebclientModule%/js/vendors/openpgp.js'),
 	Enums = require('modules/%ModuleName%/js/Enums.js'),
 	COpenPgpKey = require('modules/%ModuleName%/js/COpenPgpKey.js'),
 	COpenPgpResult = require('modules/%ModuleName%/js/COpenPgpResult.js')
@@ -22,11 +21,13 @@ var
 function COpenPgp()
 {
 	var sPrefix = 'user_' + (App.getUserId() || '0') + '_';
-	this.oKeyring = new openpgp.Keyring(new openpgp.Keyring.localstore(sPrefix));
-	
-	this.keys = ko.observableArray([]);
 
-	this.reloadKeysFromStorage();
+	this.oKeyring = new openpgp.Keyring(new openpgp.Keyring.localstore(sPrefix));
+	this.keys = ko.observableArray([]);
+	this.oKeyring.load()
+	.then(() => {
+		this.reloadKeysFromStorage();
+	});
 }
 
 COpenPgp.prototype.oKeyring = null;
@@ -84,12 +85,12 @@ COpenPgp.prototype.convertToNativeKeys = function (aKeys)
  * @private
  * @param {Object} oKey
  */
-COpenPgp.prototype.cloneKey = function (oKey)
+COpenPgp.prototype.cloneKey = async function (oKey)
 {
 	var oPrivateKey = null;
 	if (oKey)
 	{
-		oPrivateKey = openpgp.key.readArmored(oKey.armor());
+		oPrivateKey = await openpgp.key.readArmored(oKey.armor());
 		if (oPrivateKey && !oPrivateKey.err && oPrivateKey.keys && oPrivateKey.keys[0])
 		{
 			oPrivateKey = oPrivateKey.keys[0];
@@ -114,14 +115,18 @@ COpenPgp.prototype.cloneKey = function (oKey)
  * @param {string} sPassword
  * @param {string} sKeyEmail
  */
-COpenPgp.prototype.decryptKeyHelper = function (oResult, oKey, sPassword, sKeyEmail)
+COpenPgp.prototype.decryptKeyHelper = async function (oResult, oKey, sPassword, sKeyEmail)
 {
-	if (oKey)
+	if (oKey && oKey.primaryKey && oKey.primaryKey.isDecrypted() && sPassword === '')
+	{
+		//key is encoded with an empty password
+	}
+	else if(oKey)
 	{
 		try
 		{
-			oKey.decrypt(Types.pString(sPassword));
-			if (!oKey || !oKey.primaryKey || !oKey.primaryKey.isDecrypted)
+			await oKey.decrypt(Types.pString(sPassword));
+			if (!oKey || !oKey.primaryKey || !oKey.primaryKey.isDecrypted())
 			{
 				oResult.addError(Enums.OpenPgpErrors.KeyIsNotDecodedError, sKeyEmail || '');
 			}
@@ -143,7 +148,7 @@ COpenPgp.prototype.decryptKeyHelper = function (oResult, oKey, sPassword, sKeyEm
  * @param {string} sFromEmail
  * @param {Object} oDecryptedMessage
  */
-COpenPgp.prototype.verifyMessageHelper = function (oResult, sFromEmail, oDecryptedMessage)
+COpenPgp.prototype.verifyMessageHelper = async function (oResult, sFromEmail, oDecryptedMessage)
 {
 	var
 		bResult = false,
@@ -168,7 +173,7 @@ COpenPgp.prototype.verifyMessageHelper = function (oResult, sFromEmail, oDecrypt
 				aVerifyResult = [];
 				try
 				{
-					aVerifyResult = oDecryptedMessage.verify(this.convertToNativeKeys(aPublicKeys));
+					aVerifyResult = await oDecryptedMessage.verify(this.convertToNativeKeys(aPublicKeys));
 				}
 				catch (e)
 				{
@@ -177,20 +182,32 @@ COpenPgp.prototype.verifyMessageHelper = function (oResult, sFromEmail, oDecrypt
 
 				if (aVerifyResult && 0 < aVerifyResult.length)
 				{
-					oValidKey = _.find(aVerifyResult, function (oItem) {
-						return oItem && oItem.keyid && oItem.valid;
+					let aValidityPromises = [];
+					for (let oKey of aVerifyResult)
+					{
+						aValidityPromises.push(
+							oKey.verified
+							.then(validity => {
+								return oKey && oKey.keyid && validity ? oKey : null
+							})
+						);
+					}
+					await Promise.all(aValidityPromises)
+					.then(aKeys => {
+						oValidKey = _.find(aKeys, function (oKey) {
+							return oKey !== null;
+						});
+						if (oValidKey && oValidKey.keyid && 
+							aPublicKeys && aPublicKeys[0] &&
+							oValidKey.keyid.toHex().toLowerCase() === aPublicKeys[0].getId())
+						{
+							bResult = true;
+						}
+						else
+						{
+							oResult.addNotice(Enums.OpenPgpErrors.VerifyErrorNotice, sFromEmail);
+						}
 					});
-
-					if (oValidKey && oValidKey.keyid && 
-						aPublicKeys && aPublicKeys[0] &&
-						oValidKey.keyid.toHex().toLowerCase() === aPublicKeys[0].getId())
-					{
-						bResult = true;
-					}
-					else
-					{
-						oResult.addNotice(Enums.OpenPgpErrors.VerifyErrorNotice, sFromEmail);
-					}
 				}
 			}
 		}
@@ -231,22 +248,24 @@ COpenPgp.prototype.generateKey = function (sUserID, sPassword, nKeyLength, fOkHa
 			passphrase: sPassword
 		}
 	;
-	
-	openpgp.generateKey(oOptions).then(_.bind(function(oKeyPair) {
-		this.oKeyring.privateKeys.importKey(oKeyPair.privateKeyArmored);
-		this.oKeyring.publicKeys.importKey(oKeyPair.publicKeyArmored);
-		this.oKeyring.store();
+
+	openpgp.generateKey(oOptions).then(_.bind(async function(oKeyPair) {
+		await this.oKeyring.privateKeys.importKey(oKeyPair.privateKeyArmored);
+		await this.oKeyring.publicKeys.importKey(oKeyPair.publicKeyArmored);
+		await this.oKeyring.store();
 		if (_.isFunction(fOkHandler))
 		{
 			fOkHandler();
 		}
 		this.reloadKeysFromStorage();
-	}, this), function (err) {
-		if (_.isFunction(fErrorHandler))
-		{
-			fErrorHandler();
+		}, this),
+		function (err) {
+			if (_.isFunction(fErrorHandler))
+			{
+				fErrorHandler();
+			}
 		}
-	});
+	);
 };
 
 /**
@@ -298,7 +317,7 @@ COpenPgp.prototype.splitKeys = function (sArmor)
  * @param {string} sArmor
  * @return {COpenPgpResult}
  */
-COpenPgp.prototype.importKeys = function (sArmor)
+COpenPgp.prototype.importKeys = async function (sArmor)
 {
 	sArmor = $.trim(sArmor);
 
@@ -324,7 +343,7 @@ COpenPgp.prototype.importKeys = function (sArmor)
 		{
 			try
 			{
-				this.oKeyring.privateKeys.importKey(aData[1]);
+				await this.oKeyring.privateKeys.importKey(aData[1]);
 				iCount++;
 			}
 			catch (e)
@@ -336,7 +355,7 @@ COpenPgp.prototype.importKeys = function (sArmor)
 		{
 			try
 			{
-				this.oKeyring.publicKeys.importKey(aData[1]);
+				await this.oKeyring.publicKeys.importKey(aData[1]);
 				iCount++;
 			}
 			catch (e)
@@ -348,7 +367,7 @@ COpenPgp.prototype.importKeys = function (sArmor)
 
 	if (0 < iCount)
 	{
-		this.oKeyring.store();
+		await this.oKeyring.store();
 	}
 	else
 	{
@@ -364,7 +383,7 @@ COpenPgp.prototype.importKeys = function (sArmor)
  * @param {string} sArmor
  * @return {Array|boolean}
  */
-COpenPgp.prototype.getArmorInfo = function (sArmor)
+COpenPgp.prototype.getArmorInfo = async function (sArmor)
 {
 	sArmor = $.trim(sArmor);
 
@@ -391,7 +410,7 @@ COpenPgp.prototype.getArmorInfo = function (sArmor)
 		{
 			try
 			{
-				oKey = openpgp.key.readArmored(aData[1]);
+				oKey = await openpgp.key.readArmored(aData[1]);
 				if (oKey && !oKey.err && oKey.keys && oKey.keys[0])
 				{
 					aResult.push(new COpenPgpKey(oKey.keys[0]));
@@ -408,7 +427,7 @@ COpenPgp.prototype.getArmorInfo = function (sArmor)
 		{
 			try
 			{
-				oKey = openpgp.key.readArmored(aData[1]);
+				oKey = await openpgp.key.readArmored(aData[1]);
 				if (oKey && !oKey.err && oKey.keys && oKey.keys[0])
 				{
 					aResult.push(new COpenPgpKey(oKey.keys[0]));
@@ -524,16 +543,16 @@ COpenPgp.prototype.getPublicKeysIfExistsByEmail = function (sEmail)
  * @param {string} sPrivateKeyPassword
  * @returns {object}
  */
-COpenPgp.prototype.verifyKeyPassword = function (oKey, sPrivateKeyPassword)
+COpenPgp.prototype.verifyKeyPassword = async function (oKey, sPrivateKeyPassword)
 {
 	var
 		oResult = new COpenPgpResult(),
 		oPrivateKey = this.convertToNativeKeys([oKey])[0],
-		oPrivateKeyClone = this.cloneKey(oPrivateKey)
+		oPrivateKeyClone = await this.cloneKey(oPrivateKey)
 	;
-	
-	this.decryptKeyHelper(oResult, oPrivateKeyClone, sPrivateKeyPassword, '');
-	
+
+	await this.decryptKeyHelper(oResult, oPrivateKeyClone, sPrivateKeyPassword, '');
+
 	return oResult;
 };
 
@@ -546,25 +565,24 @@ COpenPgp.prototype.verifyKeyPassword = function (oKey, sPrivateKeyPassword)
  * @param {Function} fErrorHandler
  * @return {string}
  */
-COpenPgp.prototype.decryptAndVerify = function (sData, sAccountEmail, sFromEmail, sPrivateKeyPassword, fOkHandler, fErrorHandler)
+COpenPgp.prototype.decryptAndVerify = async function (sData, sAccountEmail, sFromEmail, sPrivateKeyPassword, fOkHandler, fErrorHandler)
 {
 	var
 		oResult = new COpenPgpResult(),
 		aPrivateKeys = this.findKeysByEmails([sAccountEmail], false, oResult),
 		oPrivateKey = this.convertToNativeKeys(aPrivateKeys)[0],
-		oPrivateKeyClone = this.cloneKey(oPrivateKey),
+		oPrivateKeyClone = await this.cloneKey(oPrivateKey),
 		aPublicKeys = this.getPublicKeysIfExistsByEmail(sFromEmail),
 		oOptions = {
-			message: openpgp.message.readArmored(sData), // parse armored message
-			publicKeys: this.convertToNativeKeys(aPublicKeys), // for verification (optional)
-			passphrase: sPrivateKeyPassword
+			message: await openpgp.message.readArmored(sData), // parse armored message
+			publicKeys: this.convertToNativeKeys(aPublicKeys) // for verification (optional)
 		},
 		aInvalidSignatures = []
 	;
-	
+
 	if (oPrivateKeyClone)
 	{
-		this.decryptKeyHelper(oResult, oPrivateKeyClone, sPrivateKeyPassword, sAccountEmail);
+		await this.decryptKeyHelper(oResult, oPrivateKeyClone, sPrivateKeyPassword, sAccountEmail);
 		if (oResult.errors)
 		{
 			if (_.isFunction(fErrorHandler))
@@ -574,24 +592,36 @@ COpenPgp.prototype.decryptAndVerify = function (sData, sAccountEmail, sFromEmail
 		}
 		else
 		{
-			oOptions.privateKey = oPrivateKeyClone; // for decryption
-			openpgp.decrypt(oOptions).then(function(oPgpResult) {
-				oResult.result = oPgpResult.data;
+			oOptions.privateKeys = oPrivateKeyClone; // for decryption
 
-				//if result contains invalid signatures
-				aInvalidSignatures = _.filter(oPgpResult.signatures, function (oSignature) {
-						return oSignature.valid !== true;
+			openpgp.decrypt(oOptions).then(async function(oPgpResult) {
+				oResult.result = await openpgp.stream.readToEnd(oPgpResult.data);
+				//if result contains invalid signatures 
+				let aValidityPromises = [];
+				for (let oSignature of oPgpResult.signatures)
+				{
+					aValidityPromises.push(
+						oSignature.verified
+						.then(validity => {
+							return oSignature && validity !== true ? oSignature : null
+						})
+					);
+				}
+				Promise.all(aValidityPromises)
+				.then(aSignatures => {
+					aInvalidSignatures = _.filter(aSignatures, function (oSignature) {
+						return oSignature !== null;
+					});
+					if (oPgpResult.signatures.length && aInvalidSignatures.length > 0)
+					{
+						oResult.addNotice(Enums.OpenPgpErrors.VerifyErrorNotice, sFromEmail);
 					}
-				);
-				if (oPgpResult.signatures.length > 0 && aInvalidSignatures.length > 0)
-				{
-					oResult.addNotice(Enums.OpenPgpErrors.VerifyErrorNotice, sFromEmail);
-				}
 
-				if (_.isFunction(fOkHandler))
-				{
-					fOkHandler(oResult);
-				}
+					if (_.isFunction(fOkHandler))
+					{
+						fOkHandler(oResult);
+					}
+				});
 			}, function (e) {
 				oResult.addExceptionMessage(e, Enums.OpenPgpErrors.VerifyAndDecryptError);
 				if (_.isFunction(fErrorHandler))
@@ -618,25 +648,45 @@ COpenPgp.prototype.decryptAndVerify = function (sData, sAccountEmail, sFromEmail
  * @param {Function} fErrorHandler
  * @return {string}
  */
-COpenPgp.prototype.verify = function (sData, sFromEmail, fOkHandler, fErrorHandler)
+COpenPgp.prototype.verify = async function (sData, sFromEmail, fOkHandler, fErrorHandler)
 {
 	var
-		oMessageDecrypted = openpgp.cleartext.readArmored(sData),
+		oMessage = await openpgp.cleartext.readArmored(sData),
 		oResult = new COpenPgpResult(),
 		aPublicKeys = this.findKeysByEmails([sFromEmail], true, oResult),
 		oOptions = {
-			message: oMessageDecrypted, // parse armored message
+			message: oMessage,
 			publicKeys: this.convertToNativeKeys(aPublicKeys) // for verification
 		}
 	;
 
-	openpgp.verify(oOptions).then(_.bind(function(oPgpResult) {
-		var bValid = oPgpResult.signatures[0].valid;
-		if (bValid)
+	openpgp.verify(oOptions).then(_.bind(async function(oPgpResult) {
+		let aValidityPromises = [];
+		let aValidSignatures = [];
+		for (let oSignature of oPgpResult.signatures)
 		{
-			this.verifyMessageHelper(oResult, sFromEmail, oMessageDecrypted);
-			oResult.result = oMessageDecrypted.getText();
-			if (_.isFunction(fOkHandler))
+			aValidityPromises.push(
+				oSignature.verified
+				.then(validity => {
+					return oSignature && validity === true ? oSignature : null
+				})
+			);
+		}
+		await Promise.all(aValidityPromises)
+		.then(aSignatures => {
+			aValidSignatures = _.filter(aSignatures, function (oSignature) {
+				return oSignature !== null;
+			});
+		});
+		if (aValidSignatures.length)
+		{
+			await this.verifyMessageHelper(oResult, sFromEmail, oMessage);
+			oResult.result = oMessage.getText();
+			if (oResult.notices && _.isFunction(fErrorHandler))
+			{
+				fErrorHandler(oResult);
+			}
+			else if (_.isFunction(fOkHandler))
 			{
 				fOkHandler(oResult);
 			}
@@ -675,7 +725,7 @@ COpenPgp.prototype.encrypt = function (sData, aPrincipalsEmail, fOkHandler, fErr
 	if (!oResult.hasErrors())
 	{
 		var oOptions = {
-			data: sData,
+			message: openpgp.message.fromText(sData),
 			publicKeys: this.convertToNativeKeys(aPublicKeys) // for encryption
 		};
 
@@ -707,7 +757,7 @@ COpenPgp.prototype.encrypt = function (sData, aPrincipalsEmail, fOkHandler, fErr
  * @param {Function} fErrorHandler
  * @return {string}
  */
-COpenPgp.prototype.sign = function (sData, sFromEmail, sPrivateKeyPassword, fOkHandler, fErrorHandler)
+COpenPgp.prototype.sign = async function (sData, sFromEmail, sPrivateKeyPassword, fOkHandler, fErrorHandler)
 {
 	var
 		oResult = new COpenPgpResult(),
@@ -715,18 +765,18 @@ COpenPgp.prototype.sign = function (sData, sFromEmail, sPrivateKeyPassword, fOkH
 		oPrivateKeyClone = null,
 		aPrivateKeys = this.findKeysByEmails([sFromEmail], false, oResult)
 	;
-	
+
 	if (!oResult.hasErrors())
 	{
 		oPrivateKey = this.convertToNativeKeys(aPrivateKeys)[0];
-		oPrivateKeyClone = this.cloneKey(oPrivateKey);
+		oPrivateKeyClone = await this.cloneKey(oPrivateKey);
 		
-		this.decryptKeyHelper(oResult, oPrivateKeyClone, sPrivateKeyPassword, sFromEmail);
+		await this.decryptKeyHelper(oResult, oPrivateKeyClone, sPrivateKeyPassword, sFromEmail);
 		
 		if (oPrivateKeyClone && !oResult.hasErrors())
 		{
 			var oOptions = {
-				data: sData,
+				message: openpgp.cleartext.fromText(sData),
 				privateKeys: oPrivateKeyClone
 			};
 
@@ -764,7 +814,7 @@ COpenPgp.prototype.sign = function (sData, sFromEmail, sPrivateKeyPassword, fOkH
  * @param {Function} fErrorHandler
  * @return {string}
  */
-COpenPgp.prototype.signAndEncrypt = function (sData, sFromEmail, aPrincipalsEmail, sPrivateKeyPassword, fOkHandler, fErrorHandler)
+COpenPgp.prototype.signAndEncrypt = async function (sData, sFromEmail, aPrincipalsEmail, sPrivateKeyPassword, fOkHandler, fErrorHandler)
 {
 	var
 		oPrivateKey = null,
@@ -777,15 +827,15 @@ COpenPgp.prototype.signAndEncrypt = function (sData, sFromEmail, aPrincipalsEmai
 	if (!oResult.hasErrors())
 	{
 		oPrivateKey = this.convertToNativeKeys(aPrivateKeys)[0];
-		oPrivateKeyClone = this.cloneKey(oPrivateKey);
+		oPrivateKeyClone = await this.cloneKey(oPrivateKey);
 
-		this.decryptKeyHelper(oResult, oPrivateKeyClone, sPrivateKeyPassword, sFromEmail);
+		await this.decryptKeyHelper(oResult, oPrivateKeyClone, sPrivateKeyPassword, sFromEmail);
 		
 		if (oPrivateKeyClone && !oResult.hasErrors())
 		{
 			var oOptions = {
-				data: sData,
-				publicKeys: this.convertToNativeKeys(aPublicKeys),  // for encryption
+				message: openpgp.message.fromText(sData),
+				publicKeys: this.convertToNativeKeys(aPublicKeys), // for encryption
 				privateKeys: oPrivateKeyClone // for signing (optional)
 			};
 
@@ -817,7 +867,7 @@ COpenPgp.prototype.signAndEncrypt = function (sData, sFromEmail, aPrincipalsEmai
 /**
  * @param {COpenPgpKey} oKey
  */
-COpenPgp.prototype.deleteKey = function (oKey)
+COpenPgp.prototype.deleteKey = async function (oKey)
 {
 	var oResult = new COpenPgpResult();
 	if (oKey)
@@ -825,7 +875,7 @@ COpenPgp.prototype.deleteKey = function (oKey)
 		try
 		{
 			this.oKeyring[oKey.isPrivate() ? 'privateKeys' : 'publicKeys'].removeForId(oKey.getFingerprint());
-			this.oKeyring.store();
+			await this.oKeyring.store();
 		}
 		catch (e)
 		{

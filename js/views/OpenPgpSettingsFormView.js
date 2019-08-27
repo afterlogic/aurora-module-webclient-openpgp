@@ -94,10 +94,10 @@ COpenPgpSettingsFormView.prototype.removeOpenPgpKey = function (oKey)
 {
 	var
 		sConfirm = '',
-		fRemove = _.bind(function (bRemove) {
+		fRemove = _.bind(async function (bRemove) {
 			if (bRemove)
 			{
-				var oRes = OpenPgp.deleteKey(oKey);
+				var oRes = await OpenPgp.deleteKey(oKey);
 				if (!oRes.result)
 				{
 					Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_DELETE_KEY'));
@@ -121,7 +121,7 @@ COpenPgpSettingsFormView.prototype.verifyPassword = function (oKey)
 	var fShowArmor = function () {
 		this.showArmor(oKey);
 	}.bind(this);
-	
+
 	Popups.showPopup(VerifyPasswordPopup, [oKey, fShowArmor]);
 };
 

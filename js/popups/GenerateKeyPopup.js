@@ -28,8 +28,8 @@ function CGenerateKeyPopup()
 	this.emails = ko.observableArray([]);
 	this.selectedEmail = ko.observable('');
 	this.password = ko.observable('');
-	this.keyLengthOptions = [1024, 2048];
-	this.selectedKeyLength = ko.observable(1024);
+	this.keyLengthOptions = [2048, 4096];
+	this.selectedKeyLength = ko.observable(2048);
 	this.process = ko.observable(false);
 	this.keysExistText = ko.observable('');
 }

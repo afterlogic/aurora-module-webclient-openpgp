@@ -53,7 +53,7 @@ CImportKeyPopup.prototype.onOpen = function (sArmor)
 	}
 };
 
-CImportKeyPopup.prototype.checkArmor = function ()
+CImportKeyPopup.prototype.checkArmor = async function ()
 {
 	var
 		aRes = null,
@@ -67,8 +67,8 @@ CImportKeyPopup.prototype.checkArmor = function ()
 	}
 	else
 	{
-		aRes = OpenPgp.getArmorInfo(this.keyArmor());
-		
+		aRes = await OpenPgp.getArmorInfo(this.keyArmor());
+
 		if (Types.isNonEmptyArray(aRes))
 		{
 			_.each(aRes, function (oKey) {
@@ -102,13 +102,13 @@ CImportKeyPopup.prototype.checkArmor = function ()
 	}
 };
 
-CImportKeyPopup.prototype.importKey = function ()
+CImportKeyPopup.prototype.importKey = async function ()
 {
 	var
 		oRes = null,
 		aArmors = []
 	;
-	
+
 	_.each(this.keys(), function (oSimpleKey) {
 		if (oSimpleKey.needToImport())
 		{
@@ -118,7 +118,7 @@ CImportKeyPopup.prototype.importKey = function ()
 
 	if (aArmors.length > 0)
 	{
-		oRes = OpenPgp.importKeys(aArmors.join(''));
+		oRes = await OpenPgp.importKeys(aArmors.join(''));
 
 		if (oRes && oRes.result)
 		{

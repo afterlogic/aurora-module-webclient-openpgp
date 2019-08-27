@@ -71,7 +71,12 @@ COpenPgpKey.prototype.getFingerprint = function ()
  */
 COpenPgpKey.prototype.getBitSize = function ()
 {
-	return this.pgpKey.primaryKey.getBitSize();
+	let
+		aAlgorithmInfo = this.pgpKey.primaryKey.getAlgorithmInfo(),
+		iBitSize = aAlgorithmInfo.bits ? aAlgorithmInfo.bits : 0
+	;
+
+	return iBitSize;
 };
 
 /**
