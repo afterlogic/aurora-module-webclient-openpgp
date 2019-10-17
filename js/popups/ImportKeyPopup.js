@@ -6,6 +6,7 @@ var
 	
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
 	Types = require('%PathToCoreWebclientModule%/js/utils/Types.js'),
+	AddressUtils = require('%PathToCoreWebclientModule%/js/utils/Address.js'),
 	
 	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
 	
@@ -28,6 +29,7 @@ function CImportKeyPopup()
 	this.keyArmorFocused = ko.observable(false);
 	this.keys = ko.observableArray([]);
 	this.hasExistingKeys = ko.observable(false);
+	this.bHasKeyWithoutEmail =ko.observable(false);
 	this.headlineText = ko.computed(function () {
 		return TextUtils.i18n('%MODULENAME%/INFO_TEXT_INCLUDES_KEYS_PLURAL', {}, null, this.keys().length);
 	}, this);
@@ -58,7 +60,8 @@ CImportKeyPopup.prototype.checkArmor = async function ()
 	var
 		aRes = null,
 		aKeys = [],
-		bHasExistingKeys = false
+		bHasExistingKeys = false,
+		bHasKeyWithoutEmail = false
 	;
 	
 	if (this.keyArmor() === '')
@@ -77,16 +80,19 @@ CImportKeyPopup.prototype.checkArmor = async function ()
 					var
 						aSameKeys = OpenPgp.findKeysByEmails([oKey.getEmail()], oKey.isPublic()),
 						bHasSameKey = aSameKeys.length > 0,
-						sAddInfoLangKey = oKey.isPublic() ? '%MODULENAME%/INFO_PUBLIC_KEY_LENGTH' : '%MODULENAME%/INFO_PRIVATE_KEY_LENGTH'
+						sAddInfoLangKey = oKey.isPublic() ? '%MODULENAME%/INFO_PUBLIC_KEY_LENGTH' : '%MODULENAME%/INFO_PRIVATE_KEY_LENGTH',
+						bNoEmail = !AddressUtils.isCorrectEmail(oKey.getEmail())
 					;
 					bHasExistingKeys = bHasExistingKeys || bHasSameKey;
+					bHasKeyWithoutEmail = bHasKeyWithoutEmail || bNoEmail;
 					aKeys.push({
 						'armor': oKey.getArmor(),
 						'email': oKey.user,
 						'id': oKey.getId(),
 						'addInfo': TextUtils.i18n(sAddInfoLangKey, {'LENGTH': oKey.getBitSize()}),
-						'needToImport': ko.observable(!bHasSameKey),
-						'disabled': bHasSameKey
+						'needToImport': ko.observable(!bHasSameKey && !bNoEmail),
+						'disabled': bHasSameKey || bNoEmail,
+						'noEmail': bNoEmail
 					});
 				}
 			});
@@ -99,6 +105,7 @@ CImportKeyPopup.prototype.checkArmor = async function ()
 		
 		this.keys(aKeys);
 		this.hasExistingKeys(bHasExistingKeys);
+		this.bHasKeyWithoutEmail(bHasKeyWithoutEmail);
 	}
 };
 
