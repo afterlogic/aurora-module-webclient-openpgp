@@ -8,13 +8,11 @@ function IsPgpSupported()
 module.exports = function (oAppData) {
 	var
 		Utils = require('%PathToCoreWebclientModule%/js/utils/Common.js'),
-				
 		App = require('%PathToCoreWebclientModule%/js/App.js'),
-		
 		Popups = require('%PathToCoreWebclientModule%/js/Popups.js'),
 		ImportKeyPopup = null // ImportKeyPopup requires the OpenPGP library, so it should be required after verifying PGP support only
 	;
-	
+
 	if (App.isUserNormalOrTenant())
 	{
 		var
@@ -44,19 +42,44 @@ module.exports = function (oAppData) {
 						ModulesManager.run('MailWebclient', 'registerComposeToolbarController', [require('modules/%ModuleName%/js/views/ComposeButtonsView.js')]);
 					}
 					ModulesManager.run('SettingsWebclient', 'registerSettingsTab', [function () { return require('modules/%ModuleName%/js/views/OpenPgpSettingsFormView.js'); }, Settings.HashModuleName, TextUtils.i18n('%MODULENAME%/LABEL_SETTINGS_TAB')]);
-					
+
 					App.subscribeEvent('MailWebclient::ParseFile::after', function (oFile) {
 						if (oFile && _.isFunction(oFile.addAction) && Utils.getFileExtension(oFile.fileName()) === 'asc' && oFile.content && oFile.content())
 						{
-							var oActionData = {
-								'Text': TextUtils.i18n('%MODULENAME%/ACTION_FILE_IMPORT_KEY'),
-								'Handler': function () { Popups.showPopup(ImportKeyPopup, [oFile.content()]); }
-							};
+							var
+								OpenPgp = require('modules/%ModuleName%/js/OpenPgp.js'),
+								SendKeyPopup = require('modules/%ModuleName%/js/popups/SendKeyPopup.js'),
+								fOnSuccessCallback = () => {
+									if (oFile.folderName() && oFile.messageUid())
+									{
+										const sUserEmail = App.currentAccountEmail ? App.currentAccountEmail() : '';
+										const aKeys = OpenPgp.getPublicKeysIfExistsByEmail(sUserEmail);
+										if (aKeys && aKeys[0])
+										{
+											ModulesManager.run(
+												'MailWebclient',
+												'getMessage',
+												[
+													oFile.folderName(),
+													oFile.messageUid(),
+													oMessage => {
+														Popups.showPopup(SendKeyPopup, [oMessage, aKeys[0]]);
+													}
+												]
+											);
+										}
+									}
+								},
+								oActionData = {
+									'Text': TextUtils.i18n('%MODULENAME%/ACTION_FILE_IMPORT_KEY'),
+									'Handler': function () { Popups.showPopup(ImportKeyPopup, [oFile.content(), fOnSuccessCallback]); }
+								}
+							;
 							oFile.addAction('import', true, oActionData);
 							oFile.removeAction('view');
 						}
 					});
-					
+
 					App.subscribeEvent('FilesWebclient::ParseFile::after', function (aParams) {
 						var
 							oFile = aParams[0]
@@ -65,7 +88,7 @@ module.exports = function (oAppData) {
 						{
 							var oActionData = {
 								'Text': TextUtils.i18n('%MODULENAME%/ACTION_FILE_IMPORT_KEY'),
-								'Handler': function () { Popups.showPopup(ImportKeyPopup, [oFile.content()]); }
+								'Handler': () => { Popups.showPopup(ImportKeyPopup, [oFile.content()]); }
 							};
 							oFile.addAction('import', true, oActionData);
 						}
@@ -74,6 +97,6 @@ module.exports = function (oAppData) {
 			}
 		};
 	}
-	
+
 	return null;
 };

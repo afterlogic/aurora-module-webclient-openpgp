@@ -3,17 +3,13 @@
 var
 	_ = require('underscore'),
 	ko = require('knockout'),
-	
+
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
 	Types = require('%PathToCoreWebclientModule%/js/utils/Types.js'),
 	AddressUtils = require('%PathToCoreWebclientModule%/js/utils/Address.js'),
-	
 	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
-	
 	CAbstractPopup = require('%PathToCoreWebclientModule%/js/popups/CAbstractPopup.js'),
-	
 	ErrorsUtils = require('modules/%ModuleName%/js/utils/Errors.js'),
-	
 	Enums = require('modules/%ModuleName%/js/Enums.js'),
 	OpenPgp = require('modules/%ModuleName%/js/OpenPgp.js')
 ;
@@ -24,12 +20,13 @@ var
 function CImportKeyPopup()
 {
 	CAbstractPopup.call(this);
-	
+
 	this.keyArmor = ko.observable('');
 	this.keyArmorFocused = ko.observable(false);
 	this.keys = ko.observableArray([]);
 	this.hasExistingKeys = ko.observable(false);
 	this.bHasKeyWithoutEmail =ko.observable(false);
+	this.fOnSuccessCallback = null;
 	this.headlineText = ko.computed(function () {
 		return TextUtils.i18n('%MODULENAME%/INFO_TEXT_INCLUDES_KEYS_PLURAL', {}, null, this.keys().length);
 	}, this);
@@ -41,14 +38,16 @@ CImportKeyPopup.prototype.PopupTemplate = '%ModuleName%_ImportKeyPopup';
 
 /**
  * @param {string} sArmor
+ * @param {function} fOnSuccessCallback
  */
-CImportKeyPopup.prototype.onOpen = function (sArmor)
+CImportKeyPopup.prototype.onOpen = function (sArmor, fOnSuccessCallback)
 {
 	this.keyArmor(sArmor || '');
 	this.keyArmorFocused(true);
 	this.keys([]);
 	this.hasExistingKeys(false);
-	
+	this.fOnSuccessCallback = fOnSuccessCallback;
+
 	if (this.keyArmor() !== '')
 	{
 		this.checkArmor();
@@ -63,7 +62,7 @@ CImportKeyPopup.prototype.checkArmor = async function ()
 		bHasExistingKeys = false,
 		bHasKeyWithoutEmail = false
 	;
-	
+
 	if (this.keyArmor() === '')
 	{
 		this.keyArmorFocused(true);
@@ -74,7 +73,7 @@ CImportKeyPopup.prototype.checkArmor = async function ()
 
 		if (Types.isNonEmptyArray(aRes))
 		{
-			_.each(aRes, function (oKey) {
+			_.each(aRes, oKey => {
 				if (oKey)
 				{
 					var
@@ -97,12 +96,12 @@ CImportKeyPopup.prototype.checkArmor = async function ()
 				}
 			});
 		}
-		
+
 		if (aKeys.length === 0)
 		{
 			Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_IMPORT_NO_KEY_FOUND'));
 		}
-		
+
 		this.keys(aKeys);
 		this.hasExistingKeys(bHasExistingKeys);
 		this.bHasKeyWithoutEmail(bHasKeyWithoutEmail);
@@ -116,7 +115,7 @@ CImportKeyPopup.prototype.importKey = async function ()
 		aArmors = []
 	;
 
-	_.each(this.keys(), function (oSimpleKey) {
+	_.each(this.keys(), oSimpleKey => {
 		if (oSimpleKey.needToImport())
 		{
 			aArmors.push(oSimpleKey.armor);
@@ -130,6 +129,10 @@ CImportKeyPopup.prototype.importKey = async function ()
 		if (oRes && oRes.result)
 		{
 			Screens.showReport(TextUtils.i18n('%MODULENAME%/REPORT_KEY_SUCCESSFULLY_IMPORTED_PLURAL', {}, null, aArmors.length));
+			if (_.isFunction(this.fOnSuccessCallback))
+			{
+				this.fOnSuccessCallback();
+			}
 		}
 
 		if (oRes && !oRes.result)
