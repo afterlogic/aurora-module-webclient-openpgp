@@ -558,19 +558,18 @@ COpenPgp.prototype.verifyKeyPassword = async function (oKey, sPrivateKeyPassword
 
 /**
  * @param {string} sData
- * @param {string} sAccountEmail
+ * @param {object} oEncryptionKey
  * @param {string} sFromEmail
  * @param {string} sPrivateKeyPassword = ''
  * @param {Function} fOkHandler
  * @param {Function} fErrorHandler
  * @return {string}
  */
-COpenPgp.prototype.decryptAndVerify = async function (sData, sAccountEmail, sFromEmail, sPrivateKeyPassword, fOkHandler, fErrorHandler)
+COpenPgp.prototype.decryptAndVerify = async function (sData, oEncryptionKey, sFromEmail, sPrivateKeyPassword, fOkHandler, fErrorHandler)
 {
 	var
 		oResult = new COpenPgpResult(),
-		aPrivateKeys = this.findKeysByEmails([sAccountEmail], false, oResult),
-		oPrivateKey = this.convertToNativeKeys(aPrivateKeys)[0],
+		oPrivateKey = oEncryptionKey.pgpKey,
 		oPrivateKeyClone = await this.cloneKey(oPrivateKey),
 		aPublicKeys = this.getPublicKeysIfExistsByEmail(sFromEmail),
 		oOptions = {
@@ -582,7 +581,7 @@ COpenPgp.prototype.decryptAndVerify = async function (sData, sAccountEmail, sFro
 
 	if (oPrivateKeyClone)
 	{
-		await this.decryptKeyHelper(oResult, oPrivateKeyClone, sPrivateKeyPassword, sAccountEmail);
+		await this.decryptKeyHelper(oResult, oPrivateKeyClone, sPrivateKeyPassword, oEncryptionKey.getEmail());
 		if (oResult.errors)
 		{
 			if (_.isFunction(fErrorHandler))
@@ -890,6 +889,28 @@ COpenPgp.prototype.deleteKey = async function (oKey)
 	this.reloadKeysFromStorage();
 
 	return oResult;
+};
+
+COpenPgp.prototype.getEncryptionKeyFromArmoredMessage = async function (sArmoredMessage)
+{
+	let oMessage = await openpgp.message.readArmored(sArmoredMessage);
+	let aEncryptionKeys = oMessage.getEncryptionKeyIds();
+	let oEncryptionKey = null;
+
+	if (aEncryptionKeys.length > 0)
+	{
+		for (let key of aEncryptionKeys)
+		{
+			let oKey = this.findKeyByID(key.toHex(), false);
+			if (oKey)
+			{
+				oEncryptionKey = oKey;
+				break;
+			}
+		}
+	}
+
+	return oEncryptionKey;
 };
 
 module.exports = new COpenPgp();

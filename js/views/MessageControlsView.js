@@ -23,13 +23,11 @@ function CMessageControlsView()
 	this.sFromEmail = '';
 	
 	this.decryptPassword = ko.observable('');
+	this.sActionDecryptText = ko.observable('');
+	this.oEncryptionKey = null;
 	
 	this.visibleDecryptControl = ko.observable(false);
 	this.visibleVerifyControl = ko.observable(false);
-	
-	this.visible = ko.computed(function () {
-		return this.visibleDecryptControl() || this.visibleVerifyControl();
-	}, this);
 }
 
 CMessageControlsView.prototype.ViewTemplate = '%ModuleName%_MessageControlsView';
@@ -81,12 +79,29 @@ CMessageControlsView.prototype.doAfterPopulatingMessage = function (oMessageProp
 
 		if (Settings.enableOpenPgp())
 		{
-			this.visibleDecryptControl(oMessageProps.sText.indexOf('-----BEGIN PGP MESSAGE-----') !== -1);
+			let bEncryptedMessage = oMessageProps.sText.indexOf('-----BEGIN PGP MESSAGE-----') !== -1;
 			this.visibleVerifyControl(oMessageProps.sText.indexOf('-----BEGIN PGP SIGNED MESSAGE-----') !== -1);
-			if (this.visible() && this.oMessagePane)
+			if (bEncryptedMessage)
 			{
-				this.oMessagePane.changeText('<pre>' + TextUtils.encodeHtml(this.sText) + '</pre>');
+				if ((bEncryptedMessage || bSignedMessage)  && this.oMessagePane)
+				{
+					this.oMessagePane.changeText('<pre>' + TextUtils.encodeHtml(this.sText) + '</pre>');
+				}
+				OpenPgp.getEncryptionKeyFromArmoredMessage(this.sText)
+					.then(oEncryptionKey => {
+						if (oEncryptionKey)
+						{
+							this.sActionDecryptText(TextUtils.i18n('%MODULENAME%/LABEL_ENTER_YOUR_PASSWORD', {'KEY': oEncryptionKey.getEmail()}));
+							this.visibleDecryptControl(true);
+							this.oEncryptionKey = oEncryptionKey;
+						}
+						else
+						{
+							this.visibleDecryptControl(false);
+						}
+					});
 			}
+			this.visibleDecryptControl(bEncryptedMessage);
 		}
 		else
 		{
@@ -133,7 +148,7 @@ CMessageControlsView.prototype.decryptMessage = function ()
 		}
 	;
 	
-	OpenPgp.decryptAndVerify(this.sText, this.sAccountEmail, this.sFromEmail, sPrivateKeyPassword, fOkHandler, fErrorHandler);
+	OpenPgp.decryptAndVerify(this.sText, this.oEncryptionKey, this.sFromEmail, sPrivateKeyPassword, fOkHandler, fErrorHandler);
 };
 
 CMessageControlsView.prototype.verifyMessage = function ()
