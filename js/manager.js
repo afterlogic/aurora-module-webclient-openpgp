@@ -10,7 +10,8 @@ module.exports = function (oAppData) {
 		Utils = require('%PathToCoreWebclientModule%/js/utils/Common.js'),
 		App = require('%PathToCoreWebclientModule%/js/App.js'),
 		Popups = require('%PathToCoreWebclientModule%/js/Popups.js'),
-		ImportKeyPopup = null // ImportKeyPopup requires the OpenPGP library, so it should be required after verifying PGP support only
+		ImportKeyPopup = null, // ImportKeyPopup requires the OpenPGP library, so it should be required after verifying PGP support only
+		Ajax = require('%PathToCoreWebclientModule%/js/Ajax.js')
 	;
 
 	if (App.isUserNormalOrTenant())
@@ -93,6 +94,59 @@ module.exports = function (oAppData) {
 							oFile.addAction('import', true, oActionData);
 						}
 					});
+
+					App.subscribeEvent('%ModuleName%::reloadKeysFromStorage', aParams => {
+						let
+							keys = aParams[0],
+							openpgp = require('%PathToCoreWebclientModule%/js/vendors/openpgp.js'),
+							COpenPgpKey = require('modules/%ModuleName%/js/COpenPgpKey.js')
+						;
+
+						Ajax.send('%ModuleName%', 'GetPublicKeysFromContacts', {}, async oResponse => {
+							let
+								result = oResponse && oResponse.Result,
+								oPublicKey = null
+							;
+							for (let key of result)
+							{
+								oPublicKey = await openpgp.key.readArmored(key.PublicPgpKey);
+								if (oPublicKey && !oPublicKey.err && oPublicKey.keys && oPublicKey.keys[0])
+								{
+									let oKey = new COpenPgpKey(oPublicKey.keys[0]);
+									oKey.isExternal = true;
+									keys.push(oKey);
+								}								
+							}
+						}, this);						
+					});			
+					
+					App.subscribeEvent('%ModuleName%::deleteExternalKey', aParams => {
+						let 
+							key = aParams[0],
+							OpenPgpObject = aParams[1]
+						;
+
+						Ajax.send('%ModuleName%', 'RemovePublicKeyFromContact', {'Email': key.getEmail()}, oResponse => {
+							if (oResponse && oResponse.Result)
+							{
+								OpenPgpObject.reloadKeysFromStorage();
+							}							
+						}, this);						
+					});
+					
+					App.subscribeEvent('%ModuleName%::importExternalKey', aParams => {
+						let 
+							key = aParams[0],
+							OpenPgpObject = aParams[1]
+						;
+
+						Ajax.send('%ModuleName%', 'AddPublicKeyToContact', {'Email': key.getEmail(), 'Key': key.getArmor()}, oResponse => {
+							if (oResponse && oResponse.Result)
+							{
+								OpenPgpObject.reloadKeysFromStorage();
+							}
+						}, this);						
+					});						
 				}
 			}
 		};

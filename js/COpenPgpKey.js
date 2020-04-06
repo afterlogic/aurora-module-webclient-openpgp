@@ -35,6 +35,11 @@ COpenPgpKey.prototype.emailParts = null;
 COpenPgpKey.prototype.user = '';
 
 /**
+ * @type {boolean}
+ */
+COpenPgpKey.prototype.isExternal = false;
+
+/**
  * @return {string}
  */
 COpenPgpKey.prototype.getId = function ()

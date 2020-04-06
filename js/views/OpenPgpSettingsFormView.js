@@ -40,7 +40,7 @@ function COpenPgpSettingsFormView()
 	this.publicKeys = ko.computed(function () {
 		var
 			aPublicKeys = _.filter(this.keys(), function (oKey) {
-				return oKey.isPublic();
+				return oKey.isPublic() && !oKey.isExternal;
 			})
 		;
 		return _.map(aPublicKeys, function (oKey) {
@@ -50,13 +50,23 @@ function COpenPgpSettingsFormView()
 	this.privateKeys = ko.computed(function () {
 		var
 			aPrivateKeys = _.filter(this.keys(), function (oKey) {
-				return oKey.isPrivate();
+				return oKey.isPrivate()&&!oKey.isExternal;
 			})
 		;
 		return  _.map(aPrivateKeys, function (oKey) {
 			return {'user': oKey.getUser(), 'armor': oKey.getArmor(), 'key': oKey};
 		});
 	}, this);
+	this.externalPublicKeys = ko.computed(function () {
+		var
+			aPublicKeys = _.filter(this.keys(), function (oKey) {
+				return oKey.isPublic() && oKey.isExternal;
+			})
+		;
+		return _.map(aPublicKeys, function (oKey) {
+			return {'user': oKey.getUser(), 'armor': oKey.getArmor(), 'key': oKey, 'private': false};
+		});
+	}, this);	
 }
 
 _.extendOwn(COpenPgpSettingsFormView.prototype, CAbstractSettingsFormView.prototype);

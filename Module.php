@@ -188,66 +188,83 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
-		$aContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails(
-			$UserId, 
-			\Aurora\Modules\Contacts\Enums\StorageType::Personal, 
-			[$Email]
-		);
+		$bResult = false;
 
-		if (count($aContacts) === 0)
+		if (\MailSo\Base\Validator::SimpleEmailString($Email))
 		{
-			$mResult = \Aurora\Modules\Contacts\Module::Decorator()->CreateContact(
-				['PersonalEmail' => $Email],
-				$UserId
-			);	
-			if (isset($mResult['UUID']))
-			{
-				$oContact = \Aurora\Modules\Contacts\Module::Decorator()->GetContact($mResult['UUID'], $UserId);
-				if ($oContact instanceof \Aurora\Modules\Contacts\Classes\Contact)
-				{
-					$aContacts = [$oContact];
-				}
-			}
-		}
+			$aContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails(
+				$UserId, 
+				\Aurora\Modules\Contacts\Enums\StorageType::Personal, 
+				[$Email]
+			);
 
-		if (is_array($aContacts) && count($aContacts) > 0)
-		{
-			foreach ($aContacts as $oContact)
+			if (count($aContacts) === 0)
 			{
-				if ($oContact instanceof \Aurora\Modules\Contacts\Classes\Contact)
+				$mResult = \Aurora\Modules\Contacts\Module::Decorator()->CreateContact(
+					['PersonalEmail' => $Email],
+					$UserId
+				);	
+				if (isset($mResult['UUID']))
 				{
-					$oContact->{$this->GetName() . '::PgpKey'} = $Key;
-					\Aurora\Modules\Contacts\Module::Decorator()->UpdateContactObject($oContact);
+					$oContact = \Aurora\Modules\Contacts\Module::Decorator()->GetContact($mResult['UUID'], $UserId);
+					if ($oContact instanceof \Aurora\Modules\Contacts\Classes\Contact && 
+						$oContact->Storage === \Aurora\Modules\Contacts\Enums\StorageType::Personal)
+					{
+						$aContacts = [$oContact];
+					}
 				}
 			}
 
-			return true;
+			if (is_array($aContacts) && count($aContacts) > 0)
+			{
+				foreach ($aContacts as $oContact)
+				{
+					if ($oContact instanceof \Aurora\Modules\Contacts\Classes\Contact && 
+						$oContact->Storage === \Aurora\Modules\Contacts\Enums\StorageType::Personal)
+					{
+						$oContact->{$this->GetName() . '::PgpKey'} = $Key;
+						\Aurora\Modules\Contacts\Module::Decorator()->UpdateContactObject($oContact);
+					}
+				}
+
+				$bResult = true;
+			}
 		}
+
+		return $bResult;
 	}
 
 	public function RemovePublicKeyFromContact($UserId, $Email)
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
-		$aContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails(
-			$UserId, 
-			\Aurora\Modules\Contacts\Enums\StorageType::Personal, 
-			[$Email]
-		);
+		$bResult = false;
 
-		if (is_array($aContacts) && count($aContacts) > 0)
+		if (\MailSo\Base\Validator::SimpleEmailString($Email))
 		{
-			foreach ($aContacts as $oContact)
-			{
-				if ($oContact instanceof \Aurora\Modules\Contacts\Classes\Contact)
-				{
-					$oContact->{$this->GetName() . '::PgpKey'} = null;
-					\Aurora\Modules\Contacts\Module::Decorator()->UpdateContactObject($oContact);
-				}
-			}
+			$aContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails(
+				$UserId, 
+				\Aurora\Modules\Contacts\Enums\StorageType::Personal, 
+				[$Email]
+			);
 
-			return true;
-		}		
+			if (is_array($aContacts) && count($aContacts) > 0)
+			{
+				foreach ($aContacts as $oContact)
+				{
+					if ($oContact instanceof \Aurora\Modules\Contacts\Classes\Contact && 
+						$oContact->Storage === \Aurora\Modules\Contacts\Enums\StorageType::Personal)
+					{
+						$oContact->{$this->GetName() . '::PgpKey'} = null;
+						\Aurora\Modules\Contacts\Module::Decorator()->UpdateContactObject($oContact);
+					}
+				}
+
+				$bResult = true;
+			}		
+		}
+
+		return $bResult;
 	}
 
 	public function GetPublicKeysByCountactUUIDs($UserId, $ContactUUIDs)

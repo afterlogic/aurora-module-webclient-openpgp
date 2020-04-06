@@ -28,6 +28,36 @@ function COpenPgp()
 	.then(() => {
 		this.reloadKeysFromStorage();
 	});
+
+	App.subscribeEvent('ContactsWebclient::createContactResponse', aParams => {
+		let 
+			responseResult = aParams[0]
+		;
+		if (responseResult)
+		{
+			this.reloadKeysFromStorage();
+		}
+	});		
+
+	App.subscribeEvent('ContactsWebclient::updateContactResponse', aParams => {
+		let 
+			responseResult = aParams[0]
+		;
+		if (responseResult)
+		{
+			this.reloadKeysFromStorage();
+		}
+	});
+
+	App.subscribeEvent('ContactsWebclient::deleteContactsResponse', aParams => {
+		let 
+			responseResult = aParams[0]
+		;
+		if (responseResult)
+		{
+			this.reloadKeysFromStorage();
+		}
+	});			
 }
 
 COpenPgp.prototype.oKeyring = null;
@@ -65,8 +95,8 @@ COpenPgp.prototype.reloadKeysFromStorage = function ()
 			aKeys.push(new COpenPgpKey(oItem));
 		}
 	});
-
 	this.keys(aKeys);
+	App.broadcastEvent('%ModuleName%::reloadKeysFromStorage', [this.keys]);
 };
 
 /**
@@ -353,15 +383,28 @@ COpenPgp.prototype.importKeys = async function (sArmor)
 		}
 		else if ('PUBLIC' === aData[0])
 		{
-			try
+			let oPublicKey = await openpgp.key.readArmored(aData[1]);
+			if (oPublicKey && !oPublicKey.err && oPublicKey.keys && oPublicKey.keys[0])
 			{
-				await this.oKeyring.publicKeys.importKey(aData[1]);
-				iCount++;
-			}
-			catch (e)
-			{
-				oResult.addExceptionMessage(e, Enums.OpenPgpErrors.ImportKeyError, 'public');
-			}
+				let oKey = new COpenPgpKey(oPublicKey.keys[0]);
+				if (oKey.getEmail() === App.getUserPublicId()) // TODO: is own key
+				{
+					try
+					{
+						await this.oKeyring.publicKeys.importKey(aData[1]);
+						iCount++;
+					}
+					catch (e)
+					{
+						oResult.addExceptionMessage(e, Enums.OpenPgpErrors.ImportKeyError, 'public');
+					}
+				}
+				else
+				{
+					App.broadcastEvent('%ModuleName%::importExternalKey', [oKey, this]);
+					iCount++;
+				}				
+			}			
 		}
 	}
 
@@ -871,22 +914,29 @@ COpenPgp.prototype.deleteKey = async function (oKey)
 	var oResult = new COpenPgpResult();
 	if (oKey)
 	{
-		try
+		if (!oKey.isExternal)
 		{
-			this.oKeyring[oKey.isPrivate() ? 'privateKeys' : 'publicKeys'].removeForId(oKey.getFingerprint());
-			await this.oKeyring.store();
+			try
+			{
+				this.oKeyring[oKey.isPrivate() ? 'privateKeys' : 'publicKeys'].removeForId(oKey.getFingerprint());
+				await this.oKeyring.store();
+
+				this.reloadKeysFromStorage();				
+			}
+			catch (e)
+			{
+				oResult.addExceptionMessage(e, Enums.OpenPgpErrors.DeleteError);
+			}
 		}
-		catch (e)
+		else
 		{
-			oResult.addExceptionMessage(e, Enums.OpenPgpErrors.DeleteError);
+			App.broadcastEvent('%ModuleName%::deleteExternalKey', [oKey, this]);			
 		}
 	}
 	else
 	{
 		oResult.addError(oKey ? Enums.OpenPgpErrors.UnknownError : Enums.OpenPgpErrors.InvalidArgumentError);
 	}
-
-	this.reloadKeysFromStorage();
 
 	return oResult;
 };

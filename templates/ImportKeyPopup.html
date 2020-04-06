@@ -19,6 +19,7 @@
 						<label data-bind="attr: {'for': 'need_to_import_' + id}, style: {color: noEmail ? 'red' : ''}">
 							<span class="key_email" data-bind="text: email"></span>
 							<span data-bind="text: addInfo"></span>
+							<span data-bind="text: '(external)', visible: isExternal"></span>
 						</label>
 					</div>
 				</div>

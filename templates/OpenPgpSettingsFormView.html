@@ -29,6 +29,26 @@
 			
 		<div class="fieldset" data-bind="visible: enableOpenPgp">
 			<div class="row keys_label">
+				<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_EXTERNAL_PUBLIC_KEYS'}"></span>
+				<span class="value" data-bind="i18n: {'key': '%MODULENAME%/INFO_EMPTY_EXTERNAL_PUBLIC_KEYS'}, visible: externalPublicKeys().length === 0"></span>
+			</div>
+			<div class="row folders items_list" data-bind="foreach: externalPublicKeys">
+				<div class="item">
+					<span class="title">
+						<span class="controls">
+							<span class="button subscribe subscribed" data-bind="customTooltip: '%MODULENAME%/ACTION_VIEW_KEY', click: function () { $parent.showArmor(key); }"></span>
+							<span class="button delete" data-bind="customTooltip: '%MODULENAME%/ACTION_DELETE_KEY', click: function () { $parent.removeOpenPgpKey(key); }"></span>
+						</span>
+						<span class="name">
+							<span class="text" data-bind="text: user"></span>
+						</span>
+					</span>
+				</div>
+			</div>
+		</div>
+
+		<div class="fieldset" data-bind="visible: enableOpenPgp">
+			<div class="row keys_label">
 				<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_PUBLIC_KEYS'}"></span>
 				<span class="value" data-bind="i18n: {'key': '%MODULENAME%/INFO_EMPTY_PUBLIC_KEYS'}, visible: publicKeys().length === 0"></span>
 			</div>

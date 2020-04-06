@@ -91,7 +91,8 @@ CImportKeyPopup.prototype.checkArmor = async function ()
 						'addInfo': TextUtils.i18n(sAddInfoLangKey, {'LENGTH': oKey.getBitSize()}),
 						'needToImport': ko.observable(!bHasSameKey && !bNoEmail),
 						'disabled': bHasSameKey || bNoEmail,
-						'noEmail': bNoEmail
+						'noEmail': bNoEmail,
+						'isExternal': oKey.isExternal
 					});
 				}
 			});
