@@ -343,6 +343,19 @@ COpenPgp.prototype.splitKeys = function (sArmor)
 	return aResult;
 };
 
+COpenPgp.prototype.isOwnEmail = function (sEmail)
+{
+	var
+	
+		ModulesManager = require('%PathToCoreWebclientModule%/js/ModulesManager.js'),
+		aOwnEmails = ModulesManager.run('MailWebclient', 'getAllAccountsFullEmails') || []
+	;
+	return (_.find(aOwnEmails, function(sOwnEmail) { 
+		var oEmailParts = AddressUtils.getEmailParts(sOwnEmail); 
+		return sEmail === oEmailParts.email
+	}) != undefined) ? true : false;
+}
+
 /**
  * @param {string} sArmor
  * @return {COpenPgpResult}
@@ -387,7 +400,8 @@ COpenPgp.prototype.importKeys = async function (sArmor)
 			if (oPublicKey && !oPublicKey.err && oPublicKey.keys && oPublicKey.keys[0])
 			{
 				let oKey = new COpenPgpKey(oPublicKey.keys[0]);
-				if (oKey.getEmail() === App.getUserPublicId()) // TODO: is own key
+
+				if (this.isOwnEmail(oKey.getEmail()))
 				{
 					try
 					{

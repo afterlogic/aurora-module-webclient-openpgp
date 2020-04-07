@@ -148,6 +148,33 @@ module.exports = function (oAppData) {
 						}, this);						
 					});						
 				}
+			},
+
+			isOpenPgpEnabled: function ()
+			{
+				if (!IsPgpSupported())
+				{
+					Settings.enableOpenPgp(false);
+				}
+				return Settings.enableOpenPgp;
+			},
+
+			getKeyInfo: async function (Value)
+			{
+				var
+					openpgp = require('%PathToCoreWebclientModule%/js/vendors/openpgp.js'),
+					COpenPgpKey = require('modules/OpenPgpWebclient/js/COpenPgpKey.js'),
+					oPublicKey = null,
+					oResult = null
+				;
+
+				oPublicKey = await openpgp.key.readArmored(Value);
+				if (oPublicKey && !oPublicKey.err && oPublicKey.keys && oPublicKey.keys[0])
+				{
+					oResult = new COpenPgpKey(oPublicKey.keys[0]);	
+				}
+				
+				return oResult;
 			}
 		};
 	}
