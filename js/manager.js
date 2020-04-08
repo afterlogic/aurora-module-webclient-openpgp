@@ -111,7 +111,7 @@ module.exports = function (oAppData) {
 								if (oKey.getEmail() !== oContact.ViewEmail)
 								{
 									oResult.Error = true;
-									oResult.ErrorMessage = TextUtils.i18n('%MODULENAME%/ERROR_IMPORT_KEY');
+									oResult.ErrorMessage = TextUtils.i18n('%MODULENAME%/ERROR_EMAILS_DO_NOT_MATCH');
 								}
 							}
 							else

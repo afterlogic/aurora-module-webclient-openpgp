@@ -356,12 +356,11 @@ COpenPgp.prototype.splitKeys = function (sArmor)
 COpenPgp.prototype.isOwnEmail = function (sEmail)
 {
 	var
-	
 		ModulesManager = require('%PathToCoreWebclientModule%/js/ModulesManager.js'),
 		aOwnEmails = ModulesManager.run('MailWebclient', 'getAllAccountsFullEmails') || []
 	;
-	return (_.find(aOwnEmails, function(sOwnEmail) { 
-		var oEmailParts = AddressUtils.getEmailParts(sOwnEmail); 
+	return (_.find(aOwnEmails, function(sOwnEmail) {
+		var oEmailParts = AddressUtils.getEmailParts(sOwnEmail);
 		return sEmail === oEmailParts.email
 	}) != undefined) ? true : false;
 }

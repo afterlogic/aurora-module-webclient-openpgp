@@ -92,7 +92,7 @@ CImportKeyPopup.prototype.checkArmor = async function ()
 						'needToImport': ko.observable(!bHasSameKey && !bNoEmail),
 						'disabled': bHasSameKey || bNoEmail,
 						'noEmail': bNoEmail,
-						'isExternal': oKey.isExternal
+						'isExternal': !OpenPgp.isOwnEmail(oKey.getEmail())
 					});
 				}
 			});
