@@ -234,6 +234,20 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 		return $bResult;
 	}
 
+	public function AddPublicKeysToContacts($UserId, $Keys)
+	{
+		$mResult = false;
+		foreach ($Keys as $aKey)
+		{
+			if (isset($aKey['Email'], $aKey['Key']))
+			{
+				$mResult = $this->AddPublicKeyToContact($UserId, $aKey['Email'], $aKey['Key']);
+			}
+		}
+
+		return $mResult;
+	}
+
 	public function RemovePublicKeyFromContact($UserId, $Email)
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);

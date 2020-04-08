@@ -12,7 +12,7 @@ function COpenPgpKey(oOpenPgpKey)
 	this.pgpKey = oOpenPgpKey;
 
 	var oPrimaryUser = this.pgpKey.getPrimaryUser();
-	
+
 	this.user = (oPrimaryUser && oPrimaryUser.user) ? oPrimaryUser.user.userId.userid :
 		(this.pgpKey.users && this.pgpKey.users[0] ? this.pgpKey.users[0].userId.userid : '');
 

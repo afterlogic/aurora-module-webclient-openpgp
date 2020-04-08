@@ -95,62 +95,67 @@ module.exports = function (oAppData) {
 						}
 					});
 
+					let createOrUpdateContactResult = async oParams => {
+						let
+							oContact = oParams.Contact,
+							fCallback = oParams.Callback,
+							oKey = null,
+							oResult = {Error: false, ErrorMessage: ''}
+						;
+
+						if (oContact.PublicPgpKey != '')
+						{
+							oKey = await this.getKeyInfo(oContact.PublicPgpKey);
+							if (oKey)
+							{
+								if (oKey.getEmail() !== oContact.ViewEmail)
+								{
+									oResult.Error = true;
+									oResult.ErrorMessage = TextUtils.i18n('%MODULENAME%/ERROR_IMPORT_KEY');
+								}
+							}
+							else
+							{
+								oResult.Error = true;
+								oResult.ErrorMessage = TextUtils.i18n('%MODULENAME%/ERROR_IMPORT_NO_KEY_FOUND');
+							}
+						}
+
+						fCallback(oResult);
+					};
+
+					if (this.isOpenPgpEnabled())
+					{
+						App.subscribeEvent('ContactsWebclient::beforeCreateContactRequest', createOrUpdateContactResult);
+						App.subscribeEvent('ContactsWebclient::beforeUpdateContactRequest', createOrUpdateContactResult);
+					}
+
 					App.subscribeEvent('%ModuleName%::reloadKeysFromStorage', aParams => {
 						let
-							keys = aParams[0],
-							openpgp = require('%PathToCoreWebclientModule%/js/vendors/openpgp.js'),
-							COpenPgpKey = require('modules/%ModuleName%/js/COpenPgpKey.js')
+							fCallback = aParams[0],
+							aKeys = []
 						;
 
 						Ajax.send('%ModuleName%', 'GetPublicKeysFromContacts', {}, async oResponse => {
 							let
-								result = oResponse && oResponse.Result,
-								oPublicKey = null
+								result = oResponse && oResponse.Result
 							;
 							for (let key of result)
 							{
-								oPublicKey = await openpgp.key.readArmored(key.PublicPgpKey);
-								if (oPublicKey && !oPublicKey.err && oPublicKey.keys && oPublicKey.keys[0])
+								let oKey = await this.getKeyInfo(key.PublicPgpKey);
+								if (oKey)
 								{
-									let oKey = new COpenPgpKey(oPublicKey.keys[0]);
 									oKey.isExternal = true;
-									keys.push(oKey);
-								}								
+									aKeys.push(oKey);
+								}
 							}
-						}, this);						
-					});			
-					
-					App.subscribeEvent('%ModuleName%::deleteExternalKey', aParams => {
-						let 
-							key = aParams[0],
-							OpenPgpObject = aParams[1]
-						;
-
-						Ajax.send('%ModuleName%', 'RemovePublicKeyFromContact', {'Email': key.getEmail()}, oResponse => {
-							if (oResponse && oResponse.Result)
-							{
-								OpenPgpObject.reloadKeysFromStorage();
-							}							
-						}, this);						
+							fCallback(aKeys);
+						}, this);
 					});
-					
-					App.subscribeEvent('%ModuleName%::importExternalKey', aParams => {
-						let 
-							key = aParams[0],
-							OpenPgpObject = aParams[1]
-						;
-
-						Ajax.send('%ModuleName%', 'AddPublicKeyToContact', {'Email': key.getEmail(), 'Key': key.getArmor()}, oResponse => {
-							if (oResponse && oResponse.Result)
-							{
-								OpenPgpObject.reloadKeysFromStorage();
-							}
-						}, this);						
-					});						
 				}
 			},
 
-			isOpenPgpEnabled: function ()
+			isOpenPgpEnabled: () =>
 			{
 				if (!IsPgpSupported())
 				{
@@ -159,7 +164,7 @@ module.exports = function (oAppData) {
 				return Settings.enableOpenPgp;
 			},
 
-			getKeyInfo: async function (Value)
+			getKeyInfo: async Value =>
 			{
 				var
 					openpgp = require('%PathToCoreWebclientModule%/js/vendors/openpgp.js'),
@@ -171,10 +176,42 @@ module.exports = function (oAppData) {
 				oPublicKey = await openpgp.key.readArmored(Value);
 				if (oPublicKey && !oPublicKey.err && oPublicKey.keys && oPublicKey.keys[0])
 				{
-					oResult = new COpenPgpKey(oPublicKey.keys[0]);	
+					oResult = new COpenPgpKey(oPublicKey.keys[0]);
 				}
-				
+
 				return oResult;
+			},
+
+			importExternalKeys: (aKeys, fCallback) =>
+			{
+				let
+					aKeysParam = []
+				;
+				for (let oKey of aKeys)
+				{
+					aKeysParam.push(
+						{
+							'Email': oKey.getEmail(),
+							'Key': oKey.getArmor()
+						}
+					);
+				}
+				Ajax.send('%ModuleName%', 'AddPublicKeysToContacts', {'Keys': aKeysParam}, oResponse => {
+					if (oResponse && oResponse.Result)
+					{
+						fCallback(oResponse.Result);
+					}
+				}, this);
+			},
+
+			deleteExternalKey: (oKey, fCallback) =>
+			{
+				Ajax.send('%ModuleName%', 'RemovePublicKeyFromContact', {'Email': oKey.getEmail()}, oResponse => {
+					if (oResponse && oResponse.Result)
+					{
+						fCallback(oResponse.Result);
+					}
+				}, this);
 			}
 		};
 	}

@@ -4,10 +4,10 @@ var
 	_ = require('underscore'),
 	$ = require('jquery'),
 	ko = require('knockout'),
-	
+
 	AddressUtils = require('%PathToCoreWebclientModule%/js/utils/Address.js'),
 	Types = require('%PathToCoreWebclientModule%/js/utils/Types.js'),
-	
+
 	App = require('%PathToCoreWebclientModule%/js/App.js'),
 	openpgp = require('%PathToCoreWebclientModule%/js/vendors/openpgp.js'),
 	Enums = require('modules/%ModuleName%/js/Enums.js'),
@@ -30,17 +30,17 @@ function COpenPgp()
 	});
 
 	App.subscribeEvent('ContactsWebclient::createContactResponse', aParams => {
-		let 
+		let
 			responseResult = aParams[0]
 		;
 		if (responseResult)
 		{
 			this.reloadKeysFromStorage();
 		}
-	});		
+	});
 
 	App.subscribeEvent('ContactsWebclient::updateContactResponse', aParams => {
-		let 
+		let
 			responseResult = aParams[0]
 		;
 		if (responseResult)
@@ -50,14 +50,14 @@ function COpenPgp()
 	});
 
 	App.subscribeEvent('ContactsWebclient::deleteContactsResponse', aParams => {
-		let 
+		let
 			responseResult = aParams[0]
 		;
 		if (responseResult)
 		{
 			this.reloadKeysFromStorage();
 		}
-	});			
+	});
 }
 
 COpenPgp.prototype.oKeyring = null;
@@ -86,7 +86,14 @@ COpenPgp.prototype.reloadKeysFromStorage = function ()
 {
 	var
 		aKeys = [],
-		oOpenpgpKeys = this.oKeyring.getAllKeys()
+		oOpenpgpKeys = this.oKeyring.getAllKeys(),
+		fLoadExternalKeys = (aExternalKeys) => {
+			for (let key of aExternalKeys)
+			{
+				aKeys.push(key);
+			}
+			this.keys(aKeys);
+		}
 	;
 
 	_.each(oOpenpgpKeys, function (oItem) {
@@ -95,8 +102,11 @@ COpenPgp.prototype.reloadKeysFromStorage = function ()
 			aKeys.push(new COpenPgpKey(oItem));
 		}
 	});
-	this.keys(aKeys);
-	App.broadcastEvent('%ModuleName%::reloadKeysFromStorage', [this.keys]);
+
+	if (!App.broadcastEvent('%ModuleName%::reloadKeysFromStorage', [fLoadExternalKeys]))
+	{
+		this.keys(aKeys);
+	}
 };
 
 /**
@@ -369,7 +379,9 @@ COpenPgp.prototype.importKeys = async function (sArmor)
 		iCount = 0,
 		oResult = new COpenPgpResult(),
 		aData = null,
-		aKeys = []
+		aKeys = [],
+		iExternalCount = 0,
+		aExternalKeys = []
 	;
 
 	if (!sArmor)
@@ -415,23 +427,39 @@ COpenPgp.prototype.importKeys = async function (sArmor)
 				}
 				else
 				{
-					App.broadcastEvent('%ModuleName%::importExternalKey', [oKey, this]);
-					iCount++;
-				}				
-			}			
+					aExternalKeys.push(oKey);
+					iExternalCount++;
+				}
+			}
 		}
+	}
+
+	if (0 === iCount && 0 === iExternalCount)
+	{
+		oResult.addError(Enums.OpenPgpErrors.ImportNoKeysFoundError);
 	}
 
 	if (0 < iCount)
 	{
 		await this.oKeyring.store();
 	}
+
+	if (0 < iExternalCount)
+	{
+		var
+			ModulesManager = require('%PathToCoreWebclientModule%/js/ModulesManager.js')
+		;
+		ModulesManager.run('%ModuleName%', 'importExternalKeys', [aExternalKeys, res => {
+			if (res)
+			{
+				this.reloadKeysFromStorage();
+			}
+		}]);
+	}
 	else
 	{
-		oResult.addError(Enums.OpenPgpErrors.ImportNoKeysFoundError);
+		this.reloadKeysFromStorage();
 	}
-
-	this.reloadKeysFromStorage();
 
 	return oResult;
 };
@@ -935,7 +963,7 @@ COpenPgp.prototype.deleteKey = async function (oKey)
 				this.oKeyring[oKey.isPrivate() ? 'privateKeys' : 'publicKeys'].removeForId(oKey.getFingerprint());
 				await this.oKeyring.store();
 
-				this.reloadKeysFromStorage();				
+				this.reloadKeysFromStorage();
 			}
 			catch (e)
 			{
@@ -944,7 +972,12 @@ COpenPgp.prototype.deleteKey = async function (oKey)
 		}
 		else
 		{
-			App.broadcastEvent('%ModuleName%::deleteExternalKey', [oKey, this]);			
+			var
+				ModulesManager = require('%PathToCoreWebclientModule%/js/ModulesManager.js')
+			;
+			ModulesManager.run('%ModuleName%', 'deleteExternalKey', [oKey, res => {
+				this.reloadKeysFromStorage();
+			}])
 		}
 	}
 	else
