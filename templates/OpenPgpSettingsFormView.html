@@ -27,7 +27,7 @@
 			</span>
 		</div>
 			
-		<div class="fieldset" data-bind="visible: enableOpenPgp">
+		<div class="fieldset">
 			<div class="row keys_label">
 				<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_EXTERNAL_PUBLIC_KEYS'}"></span>
 				<span class="value" data-bind="i18n: {'key': '%MODULENAME%/INFO_EMPTY_EXTERNAL_PUBLIC_KEYS'}, visible: externalPublicKeys().length === 0"></span>
@@ -47,7 +47,7 @@
 			</div>
 		</div>
 
-		<div class="fieldset" data-bind="visible: enableOpenPgp">
+		<div class="fieldset">
 			<div class="row keys_label">
 				<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_PUBLIC_KEYS'}"></span>
 				<span class="value" data-bind="i18n: {'key': '%MODULENAME%/INFO_EMPTY_PUBLIC_KEYS'}, visible: publicKeys().length === 0"></span>
@@ -83,7 +83,7 @@
 				</div>
 			</div>
 		</div>
-		<div class="buttons" data-bind="visible: enableOpenPgp">
+		<div class="buttons">
 			<span data-bind="click: exportAllPublicKeys" class="button">
 				<span data-bind="i18n: {'key': '%MODULENAME%/ACTION_EXPORT_ALL_PUBLIC_KEYS'}"></span>
 			</span>
