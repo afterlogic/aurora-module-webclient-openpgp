@@ -16,7 +16,7 @@ namespace Aurora\Modules\OpenPgpWebclient;
  */
 class Module extends \Aurora\System\Module\AbstractWebclientModule
 {
-	public function init() 
+	public function init()
 	{
 		\Aurora\Modules\Core\Classes\User::extend(
 			self::GetName(),
@@ -32,17 +32,17 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 			]
 
 		);
-		
+
 		$this->subscribeEvent('Files::PopulateFileItem::after', array($this, 'onAfterPopulateFileItem'));
 		$this->subscribeEvent('Mail::GetBodyStructureParts', array($this, 'onGetBodyStructureParts'));
 		$this->subscribeEvent('Mail::ExtendMessageData', array($this, 'onExtendMessageData'));
 		$this->subscribeEvent('Contacts::CreateContact::after', array($this, 'onAfterCreateOrUpdateContact'));
-		$this->subscribeEvent('Contacts::UpdateContact::after', array($this, 'onAfterCreateOrUpdateContact'));		
-		$this->subscribeEvent('Contacts::GetContacts::after', array($this, 'onAfterGetContacts'));		
+		$this->subscribeEvent('Contacts::UpdateContact::after', array($this, 'onAfterCreateOrUpdateContact'));
+		$this->subscribeEvent('Contacts::GetContacts::after', array($this, 'onAfterGetContacts'));
 
-		$this->subscribeEvent('Contacts::Contact::ToResponseArray', array($this, 'onContactsContactToResponseArray'));		
+		$this->subscribeEvent('Contacts::Contact::ToResponseArray', array($this, 'onContactsContactToResponseArray'));
 	}
-	
+
 	/**
 	 * @ignore
 	 * @todo not used
@@ -64,8 +64,8 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 				}
 			}
 		}
-	}	
-	
+	}
+
 	public function onGetBodyStructureParts($aParts, &$aResultParts)
 	{
 		foreach ($aParts as $oPart)
@@ -76,7 +76,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 			}
 		}
 	}
-	
+
 	public function onExtendMessageData($aData, &$oMessage)
 	{
 		foreach ($aData as $aDataItem)
@@ -112,9 +112,9 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 			{
 				$oContact->{$this->GetName() . '::PgpKey'} = $sPublicPgpKey;
 				\Aurora\Modules\Contacts\Module::Decorator()->UpdateContactObject($oContact);
-			}			
-		}		
-	}	
+			}
+		}
+	}
 
 	public function onContactsContactToResponseArray($aArgs, &$mResult)
 	{
@@ -124,7 +124,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 			unset($mResult[$this->GetName() . '::PgpKey']);
 		}
 	}
-	
+
 	public function onAfterGetContacts($aArgs, &$mResult)
 	{
 		if (isset($mResult['List']))
@@ -137,19 +137,19 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 			{
 				$aContact['HasPgpPublicKey'] = $aContactsInfo[$aContact['UUID']];
 			}
-		}	
+		}
 	}
-	
+
 	/***** public functions might be called with web API *****/
 	/**
 	 * Obtains list of module settings for authenticated user.
-	 * 
+	 *
 	 * @return array
 	 */
 	public function GetSettings()
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
-		
+
 		$aSettings = array();
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
 		if ($oUser && $oUser->isNormalOrTenant())
@@ -161,11 +161,11 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 		}
 		return $aSettings;
 	}
-	
+
 	public function UpdateSettings($EnableModule)
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
-		
+
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
 		if ($oUser)
 		{
@@ -180,7 +180,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 				return true;
 			}
 		}
-		
+
 		return false;
 	}
 
@@ -193,8 +193,8 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 		if (\MailSo\Base\Validator::SimpleEmailString($Email))
 		{
 			$aContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails(
-				$UserId, 
-				\Aurora\Modules\Contacts\Enums\StorageType::Personal, 
+				$UserId,
+				\Aurora\Modules\Contacts\Enums\StorageType::Personal,
 				[$Email]
 			);
 
@@ -203,11 +203,11 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 				$mResult = \Aurora\Modules\Contacts\Module::Decorator()->CreateContact(
 					['PersonalEmail' => $Email],
 					$UserId
-				);	
+				);
 				if (isset($mResult['UUID']))
 				{
 					$oContact = \Aurora\Modules\Contacts\Module::Decorator()->GetContact($mResult['UUID'], $UserId);
-					if ($oContact instanceof \Aurora\Modules\Contacts\Classes\Contact && 
+					if ($oContact instanceof \Aurora\Modules\Contacts\Classes\Contact &&
 						$oContact->Storage === \Aurora\Modules\Contacts\Enums\StorageType::Personal)
 					{
 						$aContacts = [$oContact];
@@ -219,7 +219,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 			{
 				foreach ($aContacts as $oContact)
 				{
-					if ($oContact instanceof \Aurora\Modules\Contacts\Classes\Contact && 
+					if ($oContact instanceof \Aurora\Modules\Contacts\Classes\Contact &&
 						$oContact->Storage === \Aurora\Modules\Contacts\Enums\StorageType::Personal)
 					{
 						$oContact->{$this->GetName() . '::PgpKey'} = $Key;
@@ -257,8 +257,8 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 		if (\MailSo\Base\Validator::SimpleEmailString($Email))
 		{
 			$aContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails(
-				$UserId, 
-				\Aurora\Modules\Contacts\Enums\StorageType::Personal, 
+				$UserId,
+				\Aurora\Modules\Contacts\Enums\StorageType::Personal,
 				[$Email]
 			);
 
@@ -266,7 +266,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 			{
 				foreach ($aContacts as $oContact)
 				{
-					if ($oContact instanceof \Aurora\Modules\Contacts\Classes\Contact && 
+					if ($oContact instanceof \Aurora\Modules\Contacts\Classes\Contact &&
 						$oContact->Storage === \Aurora\Modules\Contacts\Enums\StorageType::Personal)
 					{
 						$oContact->{$this->GetName() . '::PgpKey'} = null;
@@ -275,7 +275,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 				}
 
 				$bResult = true;
-			}		
+			}
 		}
 
 		return $bResult;
@@ -299,7 +299,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 						'PublicPgpKey' => $oContact->{$this->GetName() . '::PgpKey'}
 					];
 				}
-			}	
+			}
 		}
 
 		return $aResult;
@@ -308,7 +308,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 	public function GetContactsWithPublicKeys($UserId, $UUIDs)
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
-		$aResult = [];
+		$mResult = [];
 
 		$aContactsInfo = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsInfo(
 			\Aurora\Modules\Contacts\Enums\StorageType::Personal,
@@ -319,7 +319,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 					'UUID' => [$UUIDs, 'IN']
 				]
 			]
-		);	
+		);
 		$aContactUUIDs = [];
 		if (isset($aContactsInfo['Info']) && count($aContactsInfo['Info']) > 0)
 		{
