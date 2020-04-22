@@ -1,6 +1,10 @@
 'use strict';
 
-var AddressUtils = require('%PathToCoreWebclientModule%/js/utils/Address.js');
+var
+	_ = require('underscore'),
+	
+	AddressUtils = require('%PathToCoreWebclientModule%/js/utils/Address.js')
+;
 
 /**
  * @todo
@@ -45,6 +49,17 @@ COpenPgpKey.prototype.isExternal = false;
 COpenPgpKey.prototype.getId = function ()
 {
 	return this.pgpKey.primaryKey.getKeyId().toHex().toLowerCase();
+};
+
+/**
+ * @param {string} sId
+ * @returns {Boolean}
+ */
+COpenPgpKey.prototype.hasId = function (sId)
+{
+	return !!_.find(this.pgpKey.getKeyIds(), function (sKeyId) {
+		return sKeyId.toHex() === sId;
+	});
 };
 
 /**

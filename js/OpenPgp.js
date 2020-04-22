@@ -239,7 +239,7 @@ COpenPgp.prototype.verifyMessageHelper = async function (oResult, sFromEmail, oD
 						});
 						if (oValidKey && oValidKey.keyid && 
 							aPublicKeys && aPublicKeys[0] &&
-							oValidKey.keyid.toHex().toLowerCase() === aPublicKeys[0].getId())
+							aPublicKeys[0].hasId(oValidKey.keyid.toHex()))
 						{
 							bResult = true;
 						}
@@ -742,7 +742,7 @@ COpenPgp.prototype.verify = async function (sData, sFromEmail, fOkHandler, fErro
 			publicKeys: this.convertToNativeKeys(aPublicKeys) // for verification
 		}
 	;
-
+	
 	openpgp.verify(oOptions).then(_.bind(async function(oPgpResult) {
 		let aValidityPromises = [];
 		let aValidSignatures = [];
