@@ -83,10 +83,6 @@ CMessageControlsView.prototype.doAfterPopulatingMessage = function (oMessageProp
 			this.visibleVerifyControl(oMessageProps.sText.indexOf('-----BEGIN PGP SIGNED MESSAGE-----') !== -1);
 			if (bEncryptedMessage)
 			{
-				if ((bEncryptedMessage || bSignedMessage)  && this.oMessagePane)
-				{
-					this.oMessagePane.changeText('<pre>' + TextUtils.encodeHtml(this.sText) + '</pre>');
-				}
 				OpenPgp.getEncryptionKeyFromArmoredMessage(this.sText)
 					.then(oEncryptionKey => {
 						if (oEncryptionKey)
@@ -106,6 +102,10 @@ CMessageControlsView.prototype.doAfterPopulatingMessage = function (oMessageProp
 		else
 		{
 			this.visibleDecryptControl(false);
+		}
+		if ((this.visibleVerifyControl() || this.visibleDecryptControl()) && this.oMessagePane)
+		{
+			this.oMessagePane.changeText('<pre>' + TextUtils.encodeHtml(this.sText) + '</pre>');
 		}
 	}
 	else
