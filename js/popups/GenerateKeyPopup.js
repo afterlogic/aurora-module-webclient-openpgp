@@ -5,6 +5,7 @@ var
 	$ = require('jquery'),
 	ko = require('knockout'),
 	
+	AddressUtils = require('%PathToCoreWebclientModule%/js/utils/Address.js'),
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
 	
 	ModulesManager = require('%PathToCoreWebclientModule%/js/ModulesManager.js'),
@@ -42,15 +43,17 @@ CGenerateKeyPopup.prototype.onOpen = function ()
 {
 	var
 		aEmails = ModulesManager.run('MailWebclient', 'getAllAccountsFullEmails') || [],
+		aKeys = OpenPgp.getKeys(),
+		aKeysEmails = _.map(aKeys, function (oKey) {
+			var oEmailParts = AddressUtils.getEmailParts(oKey.user);
+			return oEmailParts.email;
+		}),
 		aEmailsToUse = []
 	;
 	
 	_.each(aEmails, function (sEmail) {
-		var
-			aPubKeys = OpenPgp.findKeysByEmails([sEmail], true),
-			aPrivKeys = OpenPgp.findKeysByEmails([sEmail], false)
-		;
-		if (aPubKeys.length === 0 && aPrivKeys.length === 0)
+		var oEmailParts = AddressUtils.getEmailParts(sEmail);
+		if (_.indexOf(aKeysEmails, oEmailParts.email) === -1)
 		{
 			aEmailsToUse.push(sEmail);
 		}
