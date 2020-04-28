@@ -212,6 +212,11 @@ module.exports = function (oAppData) {
 						fCallback(oResponse.Result);
 					}
 				}, this);
+			},
+
+			getOpenPgpEncryptor: () => {
+				let OpenPgp = require('modules/%ModuleName%/js/OpenPgp.js');
+				return OpenPgp;
 			}
 		};
 	}
