@@ -567,24 +567,7 @@ COpenPgp.prototype.findKeyByID = function (sID, bPublic)
 	sID = sID.toLowerCase();
 
 	let oKey = _.find(this.keys(), oKey => {
-
-		let
-			oResult = false,
-			aKeys = null
-		;
-
-		if (oKey && bPublic === oKey.isPublic())
-		{
-			aKeys = oKey.pgpKey.getKeyIds();
-			if (aKeys)
-			{
-				oResult = _.find(aKeys, oKey => {
-					return oKey && oKey.toHex && sID === oKey.toHex().toLowerCase();
-				});
-			}
-		}
-
-		return !!oResult;
+		return bPublic === oKey.isPublic() && oKey.hasId(sID);
 	});
 
 	return oKey ? oKey : null;
@@ -1221,22 +1204,6 @@ COpenPgp.prototype.getEncryptionKeyFromArmoredMessage = async function (sArmored
 	return oEncryptionKey;
 };
 
-COpenPgp.prototype.getCurrentAccountKeys = async function (bIsPublic = true)
-{
-	await this.initKeys();
-	let sUserEmail = App.currentAccountEmail ? App.currentAccountEmail() : '';
-	let aPublicKeys = this.findKeysByEmails([sUserEmail], bIsPublic);
-	if (aPublicKeys.length < 1)
-	{
-		const sError = TextUtils.i18n('%MODULENAME%/ERROR_NO_PUBLIC_KEYS_FOR_USERS_PLURAL',
-			{'USERS': sUserEmail}, null, 1);
-		Screens.showError(sError);
-		aPublicKeys = null;
-	}
-
-	return aPublicKeys;
-};
-
 COpenPgp.prototype.generatePassword = function ()
 {
 	let sPassword = "";
@@ -1258,6 +1225,57 @@ COpenPgp.prototype.generatePassword = function ()
 	}
 
 	return sPassword;
+};
+
+COpenPgp.prototype.getCurrentUserPrivateKey = async function ()
+{
+	await this.initKeys();
+	let mResult = null;
+	let sUserEmail = App.getUserPublicId ? App.getUserPublicId() : '';
+	let aPrivateKeys = this.findKeysByEmails([sUserEmail], /*bIsPublic*/false);
+
+	if (aPrivateKeys.length < 1)
+	{
+		const sError = TextUtils.i18n('%MODULENAME%/ERROR_NO_PRIVATE_KEYS_FOR_USERS_PLURAL',
+			{'USERS': sUserEmail}, null, 1);
+		Screens.showError(sError);
+	}
+	else
+	{
+		mResult = aPrivateKeys[0];
+	}
+
+	return mResult;
+};
+
+COpenPgp.prototype.getCurrentUserPublicKey = async function ()
+{
+	await this.initKeys();
+	let mResult = null;
+	let sUserEmail = App.getUserPublicId ? App.getUserPublicId() : '';
+	let aPrivateKeys = this.findKeysByEmails([sUserEmail], /*bIsPublic*/false);
+
+	if (aPrivateKeys.length > 0)
+	{
+		let aNativePrivateKeys = this.convertToNativeKeys(aPrivateKeys);
+		mResult = aNativePrivateKeys[0].toPublic();
+	}
+	else
+	{
+		let aPublicKeys = this.findKeysByEmails([sUserEmail], /*bIsPublic*/true);
+		if (aPublicKeys.length > 0)
+		{
+			mResult = aPublicKeys[0];
+		}
+	}
+	if (!mResult)
+	{
+		const sError = TextUtils.i18n('%MODULENAME%/ERROR_NO_PUBLIC_KEYS_FOR_USERS_PLURAL',
+			{'USERS': sUserEmail}, null, 1);
+		Screens.showError(sError);
+	}
+
+	return mResult;
 };
 
 module.exports = new COpenPgp();
