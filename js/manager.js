@@ -6,6 +6,11 @@ function IsPgpSupported()
 }
 
 module.exports = function (oAppData) {
+	if (!IsPgpSupported())
+	{
+		return null;
+	}
+	
 	var
 		Utils = require('%PathToCoreWebclientModule%/js/utils/Common.js'),
 		App = require('%PathToCoreWebclientModule%/js/App.js'),
@@ -28,143 +33,136 @@ module.exports = function (oAppData) {
 
 		return {
 			start: function (ModulesManager) {
-				if (IsPgpSupported())
+				ImportKeyPopup = require('modules/%ModuleName%/js/popups/ImportKeyPopup.js');
+				App.subscribeEvent('MailWebclient::RegisterMessagePaneController', function (fRegisterMessagePaneController) {
+					fRegisterMessagePaneController(require('modules/%ModuleName%/js/views/MessageControlsView.js'), 'BeforeMessageHeaders');
+				});
+				if (App.isMobile())
 				{
-					ImportKeyPopup = require('modules/%ModuleName%/js/popups/ImportKeyPopup.js');
-					App.subscribeEvent('MailWebclient::RegisterMessagePaneController', function (fRegisterMessagePaneController) {
-						fRegisterMessagePaneController(require('modules/%ModuleName%/js/views/MessageControlsView.js'), 'BeforeMessageHeaders');
-					});
-					if (App.isMobile())
-					{
-						ModulesManager.run('MailMobileWebclient', 'registerComposeToolbarController', [require('modules/%ModuleName%/js/views/ComposeButtonsView.js')]);
-					}
-					else
-					{
-						ModulesManager.run('MailWebclient', 'registerComposeToolbarController', [require('modules/%ModuleName%/js/views/ComposeButtonsView.js')]);
-					}
-					ModulesManager.run('SettingsWebclient', 'registerSettingsTab', [function () { return require('modules/%ModuleName%/js/views/OpenPgpSettingsFormView.js'); }, Settings.HashModuleName, TextUtils.i18n('%MODULENAME%/LABEL_SETTINGS_TAB')]);
+					ModulesManager.run('MailMobileWebclient', 'registerComposeToolbarController', [require('modules/%ModuleName%/js/views/ComposeButtonsView.js')]);
+				}
+				else
+				{
+					ModulesManager.run('MailWebclient', 'registerComposeToolbarController', [require('modules/%ModuleName%/js/views/ComposeButtonsView.js')]);
+				}
+				ModulesManager.run('SettingsWebclient', 'registerSettingsTab', [function () { return require('modules/%ModuleName%/js/views/OpenPgpSettingsFormView.js'); }, Settings.HashModuleName, TextUtils.i18n('%MODULENAME%/LABEL_SETTINGS_TAB')]);
 
-					App.subscribeEvent('MailWebclient::ParseFile::after', function (oFile) {
-						if (oFile && _.isFunction(oFile.addAction) && Utils.getFileExtension(oFile.fileName()) === 'asc' && oFile.content && oFile.content())
-						{
-							var
-								OpenPgp = require('modules/%ModuleName%/js/OpenPgp.js'),
-								SendKeyPopup = require('modules/%ModuleName%/js/popups/SendKeyPopup.js'),
-								fOnSuccessCallback = () => {
-									if (oFile.folderName() && oFile.messageUid())
-									{
-										const sUserEmail = App.currentAccountEmail ? App.currentAccountEmail() : '';
-										const aKeys = OpenPgp.getPublicKeysIfExistsByEmail(sUserEmail);
-										if (aKeys && aKeys[0])
-										{
-											ModulesManager.run(
-												'MailWebclient',
-												'getMessage',
-												[
-													oFile.folderName(),
-													oFile.messageUid(),
-													oMessage => {
-														Popups.showPopup(SendKeyPopup, [oMessage, aKeys[0]]);
-													}
-												]
-											);
-										}
-									}
-								},
-								oActionData = {
-									'Text': TextUtils.i18n('%MODULENAME%/ACTION_FILE_IMPORT_KEY'),
-									'Handler': function () { Popups.showPopup(ImportKeyPopup, [oFile.content(), fOnSuccessCallback]); }
-								}
-							;
-							oFile.addAction('import', true, oActionData);
-							oFile.removeAction('view');
-						}
-					});
-
-					App.subscribeEvent('FilesWebclient::ParseFile::after', function (aParams) {
+				App.subscribeEvent('MailWebclient::ParseFile::after', function (oFile) {
+					if (oFile && _.isFunction(oFile.addAction) && Utils.getFileExtension(oFile.fileName()) === 'asc' && oFile.content && oFile.content())
+					{
 						var
-							oFile = aParams[0]
-						;
-						if (oFile && _.isFunction(oFile.addAction) && Utils.getFileExtension(oFile.fileName()) === 'asc' && oFile.content && oFile.content())
-						{
-							var oActionData = {
-								'Text': TextUtils.i18n('%MODULENAME%/ACTION_FILE_IMPORT_KEY'),
-								'Handler': () => { Popups.showPopup(ImportKeyPopup, [oFile.content()]); }
-							};
-							oFile.addAction('import', true, oActionData);
-						}
-					});
-
-					let createOrUpdateContactResult = async oParams => {
-						let
-							oContact = oParams.Contact,
-							fCallback = oParams.Callback,
-							oKey = null,
-							oResult = {Error: false, ErrorMessage: ''}
-						;
-
-						if (oContact.PublicPgpKey != '')
-						{
-							oKey = await this.getKeyInfo(oContact.PublicPgpKey);
-							if (oKey)
-							{
-								if (oKey.getEmail() !== oContact.ViewEmail)
+							OpenPgp = require('modules/%ModuleName%/js/OpenPgp.js'),
+							SendKeyPopup = require('modules/%ModuleName%/js/popups/SendKeyPopup.js'),
+							fOnSuccessCallback = () => {
+								if (oFile.folderName() && oFile.messageUid())
 								{
-									oResult.Error = true;
-									oResult.ErrorMessage = TextUtils.i18n('%MODULENAME%/ERROR_EMAILS_DO_NOT_MATCH');
+									const sUserEmail = App.currentAccountEmail ? App.currentAccountEmail() : '';
+									const aKeys = OpenPgp.getPublicKeysIfExistsByEmail(sUserEmail);
+									if (aKeys && aKeys[0])
+									{
+										ModulesManager.run(
+											'MailWebclient',
+											'getMessage',
+											[
+												oFile.folderName(),
+												oFile.messageUid(),
+												oMessage => {
+													Popups.showPopup(SendKeyPopup, [oMessage, aKeys[0]]);
+												}
+											]
+										);
+									}
 								}
+							},
+							oActionData = {
+								'Text': TextUtils.i18n('%MODULENAME%/ACTION_FILE_IMPORT_KEY'),
+								'Handler': function () { Popups.showPopup(ImportKeyPopup, [oFile.content(), fOnSuccessCallback]); }
 							}
-							else
+						;
+						oFile.addAction('import', true, oActionData);
+						oFile.removeAction('view');
+					}
+				});
+
+				App.subscribeEvent('FilesWebclient::ParseFile::after', function (aParams) {
+					var
+						oFile = aParams[0]
+					;
+					if (oFile && _.isFunction(oFile.addAction) && Utils.getFileExtension(oFile.fileName()) === 'asc' && oFile.content && oFile.content())
+					{
+						var oActionData = {
+							'Text': TextUtils.i18n('%MODULENAME%/ACTION_FILE_IMPORT_KEY'),
+							'Handler': () => { Popups.showPopup(ImportKeyPopup, [oFile.content()]); }
+						};
+						oFile.addAction('import', true, oActionData);
+					}
+				});
+
+				let createOrUpdateContactResult = async oParams => {
+					let
+						oContact = oParams.Contact,
+						fCallback = oParams.Callback,
+						oKey = null,
+						oResult = {Error: false, ErrorMessage: ''}
+					;
+
+					if (oContact.PublicPgpKey != '')
+					{
+						oKey = await this.getKeyInfo(oContact.PublicPgpKey);
+						if (oKey)
+						{
+							if (oKey.getEmail() !== oContact.ViewEmail)
 							{
 								oResult.Error = true;
-								oResult.ErrorMessage = TextUtils.i18n('%MODULENAME%/ERROR_IMPORT_NO_KEY_FOUND');
+								oResult.ErrorMessage = TextUtils.i18n('%MODULENAME%/ERROR_EMAILS_DO_NOT_MATCH');
 							}
 						}
-
-						fCallback(oResult);
-					};
-
-					if (this.isOpenPgpEnabled())
-					{
-						App.subscribeEvent('ContactsWebclient::beforeCreateContactRequest', createOrUpdateContactResult);
-						App.subscribeEvent('ContactsWebclient::beforeUpdateContactRequest', createOrUpdateContactResult);
+						else
+						{
+							oResult.Error = true;
+							oResult.ErrorMessage = TextUtils.i18n('%MODULENAME%/ERROR_IMPORT_NO_KEY_FOUND');
+						}
 					}
 
-					App.subscribeEvent('%ModuleName%::reloadKeysFromStorage', aParams => {
-						let
-							fCallback = aParams[0],
-							aKeys = []
-						;
+					fCallback(oResult);
+				};
 
-						Ajax.send('%ModuleName%', 'GetPublicKeysFromContacts', {}, async oResponse => {
-							let
-								result = oResponse && oResponse.Result
-							;
-							for (let key of result)
-							{
-								let oKey = await this.getKeyInfo(key.PublicPgpKey);
-								if (oKey)
-								{
-									oKey.isExternal = true;
-									aKeys.push(oKey);
-								}
-							}
-							fCallback(aKeys);
-						}, this);
-					});
+				if (this.isOpenPgpEnabled())
+				{
+					App.subscribeEvent('ContactsWebclient::beforeCreateContactRequest', createOrUpdateContactResult);
+					App.subscribeEvent('ContactsWebclient::beforeUpdateContactRequest', createOrUpdateContactResult);
 				}
+
+				App.subscribeEvent('%ModuleName%::reloadKeysFromStorage', aParams => {
+					let
+						fCallback = aParams[0],
+						aKeys = []
+					;
+
+					Ajax.send('%ModuleName%', 'GetPublicKeysFromContacts', {}, async oResponse => {
+						let
+							result = oResponse && oResponse.Result
+						;
+						for (let key of result)
+						{
+							let oKey = await this.getKeyInfo(key.PublicPgpKey);
+							if (oKey)
+							{
+								oKey.isExternal = true;
+								aKeys.push(oKey);
+							}
+						}
+						fCallback(aKeys);
+					}, this);
+				});
 			},
 
 			isOpenPgpEnabled: () =>
 			{
-				if (!IsPgpSupported())
-				{
-					Settings.enableOpenPgp(false);
-				}
 				return Settings.enableOpenPgp;
 			},
 
-			getKeyInfo: async Value =>
+			getKeyInfo: async (sValue, fCallback) =>
 			{
 				var
 					openpgp = require('%PathToCoreWebclientModule%/js/vendors/openpgp.js'),
@@ -173,10 +171,15 @@ module.exports = function (oAppData) {
 					oResult = null
 				;
 
-				oPublicKey = await openpgp.key.readArmored(Value);
+				oPublicKey = await openpgp.key.readArmored(sValue);
 				if (oPublicKey && !oPublicKey.err && oPublicKey.keys && oPublicKey.keys[0])
 				{
 					oResult = new COpenPgpKey(oPublicKey.keys[0]);
+				}
+				
+				if (_.isFunction(fCallback))
+				{
+					fCallback(oResult);
 				}
 
 				return oResult;
