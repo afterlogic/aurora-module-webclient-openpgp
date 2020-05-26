@@ -19,6 +19,9 @@ function COpenPgpKey(oOpenPgpKey)
 
 	this.user = (oPrimaryUser && oPrimaryUser.user) ? oPrimaryUser.user.userId.userid :
 		(this.pgpKey.users && this.pgpKey.users[0] ? this.pgpKey.users[0].userId.userid : '');
+	this.userName = (oPrimaryUser && oPrimaryUser.user) ?
+		oPrimaryUser.user.userId.name :
+		(this.pgpKey.users && this.pgpKey.users[0] ? this.pgpKey.users[0].userId.name : '');
 
 	this.emailParts = AddressUtils.getEmailParts(this.user);
 }
@@ -37,6 +40,11 @@ COpenPgpKey.prototype.emailParts = null;
  * @type {string}
  */
 COpenPgpKey.prototype.user = '';
+
+/**
+ * @type {string}
+ */
+COpenPgpKey.prototype.userName = '';
 
 /**
  * @type {boolean}
@@ -76,6 +84,14 @@ COpenPgpKey.prototype.getEmail = function ()
 COpenPgpKey.prototype.getUser = function ()
 {
 	return this.user;
+};
+
+/**
+ * @return {string}
+ */
+COpenPgpKey.prototype.getUserName = function ()
+{
+	return this.userName;
 };
 
 /**

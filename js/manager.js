@@ -195,7 +195,8 @@ module.exports = function (oAppData) {
 					aKeysParam.push(
 						{
 							'Email': oKey.getEmail(),
-							'Key': oKey.getArmor()
+							'Key': oKey.getArmor(),
+							'Name': oKey.getUserName()
 						}
 					);
 				}

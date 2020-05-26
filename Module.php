@@ -184,7 +184,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 		return false;
 	}
 
-	public function AddPublicKeyToContact($UserId, $Email, $Key)
+	public function AddPublicKeyToContact($UserId, $Email, $Key, $UserName = '')
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
@@ -201,7 +201,10 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 			if (count($aContacts) === 0)
 			{
 				$mResult = \Aurora\Modules\Contacts\Module::Decorator()->CreateContact(
-					['PersonalEmail' => $Email],
+					[
+						'PersonalEmail' => $Email,
+						'FullName' => $UserName
+					],
 					$UserId
 				);
 				if (isset($mResult['UUID']))
@@ -241,7 +244,8 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 		{
 			if (isset($aKey['Email'], $aKey['Key']))
 			{
-				$mResult = $this->AddPublicKeyToContact($UserId, $aKey['Email'], $aKey['Key']);
+				$sUserName = isset($aKey['Name']) ? $aKey['Name'] : '';
+				$mResult = $this->AddPublicKeyToContact($UserId, $aKey['Email'], $aKey['Key'], $sUserName);
 			}
 		}
 
