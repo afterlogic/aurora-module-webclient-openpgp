@@ -1229,7 +1229,6 @@ COpenPgp.prototype.generatePassword = function ()
 
 COpenPgp.prototype.getCurrentUserPrivateKey = async function ()
 {
-	await this.initKeys();
 	let mResult = null;
 	let sUserEmail = App.getUserPublicId ? App.getUserPublicId() : '';
 	let aPrivateKeys = this.findKeysByEmails([sUserEmail], /*bIsPublic*/false);
@@ -1250,7 +1249,6 @@ COpenPgp.prototype.getCurrentUserPrivateKey = async function ()
 
 COpenPgp.prototype.getCurrentUserPublicKey = async function ()
 {
-	await this.initKeys();
 	let mResult = null;
 	let sUserEmail = App.getUserPublicId ? App.getUserPublicId() : '';
 	let aPrivateKeys = this.findKeysByEmails([sUserEmail], /*bIsPublic*/false);
