@@ -10,7 +10,7 @@ module.exports = function (oAppData) {
 	{
 		return null;
 	}
-	
+
 	var
 		Utils = require('%PathToCoreWebclientModule%/js/utils/Common.js'),
 		App = require('%PathToCoreWebclientModule%/js/App.js'),
@@ -176,7 +176,7 @@ module.exports = function (oAppData) {
 				{
 					oResult = new COpenPgpKey(oPublicKey.keys[0]);
 				}
-				
+
 				if (_.isFunction(fCallback))
 				{
 					fCallback(oResult);
@@ -221,6 +221,22 @@ module.exports = function (oAppData) {
 			getOpenPgpEncryptor: () => {
 				let OpenPgp = require('modules/%ModuleName%/js/OpenPgp.js');
 				return OpenPgp;
+			},
+
+			getSuggestionsAutocompleteFilteredCallback: fSuggestionsAutocompleteCallback => {
+				return (oRequest, fResponse) => {
+					const fResponseWrapper = oItems => {
+						/*---here we can filter or edit response items---*/
+						let OpenPgp = require('modules/%ModuleName%/js/OpenPgp.js');
+						const aPublicKeysEmails = OpenPgp.getPublicKeys().map(oKey => oKey.getEmail());
+						oItems.forEach(oItem => {
+							oItem.hasKey = aPublicKeysEmails.includes(oItem.email)
+						});
+						/*-----------------------------------------------*/
+						fResponse(oItems);
+					};
+					fSuggestionsAutocompleteCallback(oRequest, fResponseWrapper)
+				};
 			}
 		};
 	}
