@@ -667,7 +667,8 @@ COpenPgp.prototype.decryptAndVerify = async function (sData, oEncryptionKey, sFr
 
 	try
 	{
-		const oDecryptionResult = await this.decryptData(sData,
+		const oDecryptionResult = await this.decryptData(
+			sData,
 			sPrivateKeyPassword,
 			false, //bPasswordBasedEncryption
 			[oEncryptionKey],
@@ -973,6 +974,14 @@ COpenPgp.prototype.encryptData = async function (Data, aPublicKeys = [], aPrivat
 			oPrivateKeyClone = await this.cloneKey(oPrivateKey)
 		;
 
+		if (!sPassphrase)
+		{
+			sPassphrase = await this.askForKeyPassword(aPrivateKeys[0].getUser());
+			if (sPassphrase === false)
+			{//user cancel operation
+				return oResult;
+			}
+		}
 		await this.decryptKeyHelper(oResult, oPrivateKeyClone, sPassphrase, aPrivateKeys[0].getEmail());
 		oOptions.privateKeys = [oPrivateKeyClone];
 	}
