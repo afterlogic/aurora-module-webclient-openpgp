@@ -4,17 +4,18 @@ var
 	_ = require('underscore'),
 	$ = require('jquery'),
 	ko = require('knockout'),
-	
+
+	App = require('%PathToCoreWebclientModule%/js/App.js'),
 	AddressUtils = require('%PathToCoreWebclientModule%/js/utils/Address.js'),
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
-	
+
 	ModulesManager = require('%PathToCoreWebclientModule%/js/ModulesManager.js'),
 	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
-	
+
 	CAbstractPopup = require('%PathToCoreWebclientModule%/js/popups/CAbstractPopup.js'),
-	
+
 	ErrorsUtils = require('modules/%ModuleName%/js/utils/Errors.js'),
-	
+
 	Enums = require('modules/%ModuleName%/js/Enums.js'),
 	OpenPgp = require('modules/%ModuleName%/js/OpenPgp.js')
 ;
@@ -25,7 +26,7 @@ var
 function CGenerateKeyPopup()
 {
 	CAbstractPopup.call(this);
-	
+
 	this.emails = ko.observableArray([]);
 	this.selectedEmail = ko.observable('');
 	this.password = ko.observable('');
@@ -41,8 +42,9 @@ CGenerateKeyPopup.prototype.PopupTemplate = '%ModuleName%_GenerateKeyPopup';
 
 CGenerateKeyPopup.prototype.onOpen = function ()
 {
-	var
-		aEmails = ModulesManager.run('MailWebclient', 'getAllAccountsFullEmails') || [],
+	let
+		aDefaultEmails = App.getUserPublicId ? [App.getUserPublicId()] : [],
+		aEmails = ModulesManager.run('MailWebclient', 'getAllAccountsFullEmails') || aDefaultEmails,
 		aKeys = OpenPgp.getKeys(),
 		aKeysEmails = _.map(aKeys, function (oKey) {
 			var oEmailParts = AddressUtils.getEmailParts(oKey.user);
@@ -50,20 +52,20 @@ CGenerateKeyPopup.prototype.onOpen = function ()
 		}),
 		aEmailsToUse = []
 	;
-	
-	_.each(aEmails, function (sEmail) {
-		var oEmailParts = AddressUtils.getEmailParts(sEmail);
+
+	_.each(aEmails, sEmail => {
+		let oEmailParts = AddressUtils.getEmailParts(sEmail);
 		if (_.indexOf(aKeysEmails, oEmailParts.email) === -1)
 		{
 			aEmailsToUse.push(sEmail);
 		}
 	});
-	
+
 	if (aEmailsToUse.length === 0)
 	{
-		this.keysExistText(TextUtils.i18n('%MODULENAME%/INFO_KEYS_EXIST_PLURAL', null, null, aEmails.length));
+		this.keysExistText(TextUtils.i18n('%MODULENAME%/INFO_KEYS_EXIST_PLURAL', {}, null, aEmails.length));
 	}
-	
+
 	this.emails(aEmailsToUse);
 	this.selectedEmail('');
 	this.password('');
@@ -77,7 +79,7 @@ CGenerateKeyPopup.prototype.generate = function ()
 	{
 		return;
 	}
-	
+
 	var
 		fKeysGenerated = _.bind(function () {
 			Screens.showReport(TextUtils.i18n('%MODULENAME%/REPORT_KEY_SUCCESSFULLY_GENERATED'));
@@ -90,7 +92,7 @@ CGenerateKeyPopup.prototype.generate = function ()
 			this.closePopup();
 		}, this)
 	;
-	
+
 	this.process(true);
 	_.delay(_.bind(function () {
 		OpenPgp.generateKey(this.selectedEmail(), $.trim(this.password()), this.selectedKeyLength(), fKeysGenerated, fKeysGenerateError);
