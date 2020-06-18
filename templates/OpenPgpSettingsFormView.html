@@ -5,7 +5,7 @@
 <div class="panel_center">
 	<div class="fields">
 		<div class="fieldset">
-			<div class="row">
+			<div class="row" data-bind="visible: isMailAvailable">
 				<span class="value">
 					<label class="custom_checkbox" data-bind="css: {'checked': enableOpenPgp}">
 						<span class="icon"></span>
@@ -18,7 +18,7 @@
 				<span class="value hint" data-bind="i18n: {'key': '%MODULENAME%/INFO_ALLOW_AUTOSAVE'}"></span>
 			</div>
 		</div>
-		<div class="buttons">
+		<div class="buttons" data-bind="visible: isMailAvailable">
 			<span class="button" data-bind="click: save, visible: !isSaving()">
 				<span data-bind="i18n: {'key': 'COREWEBCLIENT/ACTION_SAVE'}"></span>
 			</span>
@@ -26,7 +26,6 @@
 				<span data-bind="i18n: {'key': 'COREWEBCLIENT/ACTION_SAVE_IN_PROGRESS'}"></span>
 			</span>
 		</div>
-			
 		<div class="fieldset">
 			<div class="row keys_label">
 				<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_EXTERNAL_PUBLIC_KEYS'}"></span>
