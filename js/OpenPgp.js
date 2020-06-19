@@ -15,6 +15,7 @@ let
 	COpenPgpResult = require('modules/%ModuleName%/js/COpenPgpResult.js'),
 	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
+	Storage = require('%PathToCoreWebclientModule%/js/Storage.js'),
 	Popups = require('%PathToCoreWebclientModule%/js/Popups.js'),
 	PGPKeyPasswordPopup = require('modules/%ModuleName%/js/popups/PGPKeyPasswordPopup.js')
 ;
@@ -24,9 +25,9 @@ let
  */
 function COpenPgp()
 {
-	const sPrefix = 'user_' + (App.getUserId() || '0') + '_';
+	this.sPrefix = 'user_' + (App.getUserId() || '0') + '_';
 
-	this.oKeyring = new openpgp.Keyring(new openpgp.Keyring.localstore(sPrefix));
+	this.oKeyring = new openpgp.Keyring(new openpgp.Keyring.localstore(this.sPrefix));
 	this.keys = ko.observableArray([]);
 	this.initKeys();
 
@@ -1283,6 +1284,11 @@ COpenPgp.prototype.getCurrentUserPublicKey = async function ()
 	}
 
 	return mResult;
+};
+
+COpenPgp.prototype.isPrivateKeyAvailable = function ()
+{
+	return Storage.hasData(this.sPrefix + 'private-keys');
 };
 
 module.exports = new COpenPgp();
