@@ -2,7 +2,7 @@
 
 var
 	_ = require('underscore'),
-	
+
 	AddressUtils = require('%PathToCoreWebclientModule%/js/utils/Address.js')
 ;
 
@@ -30,6 +30,11 @@ function COpenPgpKey(oOpenPgpKey)
  * @type {Object}
  */
 COpenPgpKey.prototype.pgpKey = null;
+
+/**
+ * @type {string}
+ */
+COpenPgpKey.prototype.passphrase = '';
 
 /**
  * @type {Object}
@@ -137,6 +142,19 @@ COpenPgpKey.prototype.isPrivate = function ()
 COpenPgpKey.prototype.isPublic = function ()
 {
 	return !this.isPrivate();
+};
+
+/**
+ * @return {string}
+ */
+COpenPgpKey.prototype.getPassphrase = function ()
+{
+	return this.passphrase;
+};
+
+COpenPgpKey.prototype.setPassphrase = function (sPassphrase)
+{
+	this.passphrase = sPassphrase;
 };
 
 module.exports = COpenPgpKey;

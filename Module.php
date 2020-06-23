@@ -21,7 +21,8 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 		\Aurora\Modules\Core\Classes\User::extend(
 			self::GetName(),
 			[
-				'EnableModule'	=> ['bool', false],
+				'EnableModule'			=> ['bool', false],
+				'RememberPassphrase'	=> ['bool', false]
 			]
 		);
 
@@ -158,11 +159,15 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 			{
 				$aSettings['EnableModule'] = $oUser->{self::GetName().'::EnableModule'};
 			}
+			if (isset($oUser->{self::GetName().'::RememberPassphrase'}))
+			{
+				$aSettings['RememberPassphrase'] = $oUser->{self::GetName().'::RememberPassphrase'};
+			}
 		}
 		return $aSettings;
 	}
 
-	public function UpdateSettings($EnableModule)
+	public function UpdateSettings($EnableModule, $RememberPassphrase)
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
@@ -173,6 +178,10 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 			{
 				$oCoreDecorator = \Aurora\Modules\Core\Module::Decorator();
 				$oUser->{self::GetName().'::EnableModule'} = $EnableModule;
+				if (isset($RememberPassphrase))
+				{
+					$oUser->{self::GetName().'::RememberPassphrase'} = $RememberPassphrase;
+				}
 				return $oCoreDecorator->UpdateUserObject($oUser);
 			}
 			if ($oUser->Role === \Aurora\System\Enums\UserRole::SuperAdmin)

@@ -17,6 +17,15 @@
 			<div class="row">
 				<span class="value hint" data-bind="i18n: {'key': '%MODULENAME%/INFO_ALLOW_AUTOSAVE'}"></span>
 			</div>
+			<div class="row">
+				<span class="value">
+					<label class="custom_checkbox" data-bind="css: {'checked': rememberPassphrase}">
+						<span class="icon"></span>
+						<input type="checkbox" id="rememberPassphrase" data-bind="checked: rememberPassphrase" />
+					</label>
+					<label for="rememberPassphrase" data-bind="i18n: {'key': '%MODULENAME%/LABEL_REMEMBER_PASSPHRASE'}"></label>
+				</span>
+			</div>
 		</div>
 		<div class="buttons" data-bind="visible: isMailAvailable">
 			<span class="button" data-bind="click: save, visible: !isSaving()">

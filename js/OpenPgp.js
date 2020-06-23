@@ -17,7 +17,8 @@ let
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
 	Storage = require('%PathToCoreWebclientModule%/js/Storage.js'),
 	Popups = require('%PathToCoreWebclientModule%/js/Popups.js'),
-	PGPKeyPasswordPopup = require('modules/%ModuleName%/js/popups/PGPKeyPasswordPopup.js')
+	PGPKeyPasswordPopup = require('modules/%ModuleName%/js/popups/PGPKeyPasswordPopup.js'),
+	Settings = require('modules/%ModuleName%/js/Settings.js')
 ;
 
 /**
@@ -646,6 +647,14 @@ COpenPgp.prototype.verifyKeyPassword = async function (oKey, sPrivateKeyPassword
 	;
 
 	await this.decryptKeyHelper(oResult, oPrivateKeyClone, sPrivateKeyPassword, '');
+	if (
+		!oResult.hasErrors()
+		&& !oKey.getPassphrase()
+		&& Settings.rememberPassphrase()
+	)
+	{
+		oKey.setPassphrase(sPrivateKeyPassword);
+	}
 
 	return oResult;
 };
@@ -972,8 +981,10 @@ COpenPgp.prototype.encryptData = async function (Data, aPublicKeys = [], aPrivat
 	{
 		let
 			oPrivateKey = this.convertToNativeKeys(aPrivateKeys)[0],
-			oPrivateKeyClone = await this.cloneKey(oPrivateKey)
+			oPrivateKeyClone = await this.cloneKey(oPrivateKey),
+			sStoredPassphrase = aPrivateKeys[0].getPassphrase()
 		;
+		sPassphrase = sPassphrase ? sPassphrase : sStoredPassphrase;
 
 		if (!sPassphrase)
 		{
@@ -984,6 +995,14 @@ COpenPgp.prototype.encryptData = async function (Data, aPublicKeys = [], aPrivat
 			}
 		}
 		await this.decryptKeyHelper(oResult, oPrivateKeyClone, sPassphrase, aPrivateKeys[0].getEmail());
+		if (
+			!oResult.hasErrors()
+			&& !sStoredPassphrase
+			&& Settings.rememberPassphrase()
+		)
+		{
+			aPrivateKeys[0].setPassphrase(sPassphrase);
+		}
 		oOptions.privateKeys = [oPrivateKeyClone];
 	}
 	if (!oResult.hasErrors())
@@ -1058,18 +1077,29 @@ COpenPgp.prototype.decryptData = async function (Data, sPassword = '', bPassword
 		{
 			let
 				oPrivateKey = this.convertToNativeKeys(aPrivateKeys)[0],
-				oPrivateKeyClone = await this.cloneKey(oPrivateKey)
+				oPrivateKeyClone = await this.cloneKey(oPrivateKey),
+				sStoredPassphrase = aPrivateKeys[0].getPassphrase(),
+				sPassphrase = sPassword ? sPassword : sStoredPassphrase
 			;
-			if (!sPassword)
+
+			if (!sPassphrase)
 			{
-				sPassword = await this.askForKeyPassword(aPrivateKeys[0].getUser());
-				if (sPassword === false)
+				sPassphrase = await this.askForKeyPassword(aPrivateKeys[0].getUser());
+				if (sPassphrase === false)
 				{//user cancel operation
 					return oResult;
 				}
 			}
 			sEmail = aPrivateKeys[0].getEmail();
-			await this.decryptKeyHelper(oResult, oPrivateKeyClone, sPassword, sEmail);
+			await this.decryptKeyHelper(oResult, oPrivateKeyClone, sPassphrase, sEmail);
+			if (
+				!oResult.hasErrors()
+				&& !sStoredPassphrase
+				&& Settings.rememberPassphrase()
+			)
+			{
+				aPrivateKeys[0].setPassphrase(sPassphrase);
+			}
 			oOptions.privateKeys = oPrivateKeyClone;
 		}
 		else
