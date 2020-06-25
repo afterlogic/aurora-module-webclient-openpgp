@@ -18,7 +18,8 @@ let
 	Storage = require('%PathToCoreWebclientModule%/js/Storage.js'),
 	Popups = require('%PathToCoreWebclientModule%/js/Popups.js'),
 	PGPKeyPasswordPopup = require('modules/%ModuleName%/js/popups/PGPKeyPasswordPopup.js'),
-	Settings = require('modules/%ModuleName%/js/Settings.js')
+	Settings = require('modules/%ModuleName%/js/Settings.js'),
+	ErrorsUtils = require('modules/%ModuleName%/js/utils/Errors.js')
 ;
 
 /**
@@ -1319,6 +1320,11 @@ COpenPgp.prototype.getCurrentUserPublicKey = async function ()
 COpenPgp.prototype.isPrivateKeyAvailable = function ()
 {
 	return Storage.hasData(this.sPrefix + 'private-keys');
+};
+
+COpenPgp.prototype.showPgpErrorByCode = function (oOpenPgpResult, sPgpAction, sDefaultError)
+{
+	ErrorsUtils.showPgpErrorByCode(oOpenPgpResult, sPgpAction, sDefaultError);
 };
 
 module.exports = new COpenPgp();
