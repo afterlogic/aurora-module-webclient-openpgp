@@ -15,11 +15,11 @@ let
 	COpenPgpResult = require('modules/%ModuleName%/js/COpenPgpResult.js'),
 	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
-	Storage = require('%PathToCoreWebclientModule%/js/Storage.js'),
 	Popups = require('%PathToCoreWebclientModule%/js/Popups.js'),
 	PGPKeyPasswordPopup = require('modules/%ModuleName%/js/popups/PGPKeyPasswordPopup.js'),
 	Settings = require('modules/%ModuleName%/js/Settings.js'),
-	ErrorsUtils = require('modules/%ModuleName%/js/utils/Errors.js')
+	ErrorsUtils = require('modules/%ModuleName%/js/utils/Errors.js'),
+	Ajax = require('%PathToCoreWebclientModule%/js/Ajax.js')
 ;
 
 /**
@@ -31,7 +31,7 @@ function COpenPgp()
 
 	this.oKeyring = new openpgp.Keyring(new openpgp.Keyring.localstore(this.sPrefix));
 	this.keys = ko.observableArray([]);
-	this.initKeys();
+	this.oPromiseInitialised = this.initKeys();
 
 	App.subscribeEvent('ContactsWebclient::createContactResponse', aParams => {
 		let
@@ -70,7 +70,7 @@ COpenPgp.prototype.keys = [];
 COpenPgp.prototype.initKeys = async function ()
 {
 	await this.oKeyring.load();
-	this.reloadKeysFromStorage();
+	await this.reloadKeysFromStorage();
 };
 
 /**
@@ -112,18 +112,11 @@ COpenPgp.prototype.getKeysObservable = function ()
 /**
  * @private
  */
-COpenPgp.prototype.reloadKeysFromStorage = function ()
+COpenPgp.prototype.reloadKeysFromStorage = async function ()
 {
 	let
 		aKeys = [],
-		oOpenpgpKeys = this.oKeyring.getAllKeys(),
-		fLoadExternalKeys = aExternalKeys => {
-			for (let key of aExternalKeys)
-			{
-				aKeys.push(key);
-			}
-			this.keys(aKeys);
-		}
+		oOpenpgpKeys = this.oKeyring.getAllKeys()
 	;
 
 	_.each(oOpenpgpKeys, oItem => {
@@ -133,10 +126,49 @@ COpenPgp.prototype.reloadKeysFromStorage = function ()
 		}
 	});
 
-	if (!App.broadcastEvent('%ModuleName%::reloadKeysFromStorage', [fLoadExternalKeys]))
-	{
-		this.keys(aKeys);
-	}
+	const aExternalKeys = await this.getPublicKeysFromContacts();
+	this.keys([...aKeys, ...aExternalKeys]);
+};
+
+/**
+ * @return {Array}
+ */
+COpenPgp.prototype.getPublicKeysFromContacts = async function ()
+{
+	const oPromisePublicKeys = new Promise((resolve, reject) => {
+		Ajax.send(
+			'%ModuleName%',
+			'GetPublicKeysFromContacts',
+			{},
+			async oResponse => {
+				let aKeys = [];
+				let	result = oResponse && oResponse.Result;
+				for (let key of result)
+				{
+					let oNativeKey = await openpgp.key.readArmored(key.PublicPgpKey);
+					let oKey = null;
+					if (
+						oNativeKey
+						&& !oNativeKey.err
+						&& oNativeKey.keys
+						&& oNativeKey.keys[0]
+					)
+					{
+						oKey = new COpenPgpKey(oNativeKey.keys[0]);
+						if (oKey)
+						{
+							oKey.isExternal = true;
+							aKeys.push(oKey);
+						}
+					}
+				}
+				resolve(aKeys);
+			},
+			this
+		);
+	});
+
+	return await oPromisePublicKeys;
 };
 
 /**
@@ -475,15 +507,11 @@ COpenPgp.prototype.importKeys = async function (sArmor)
 
 	if (0 < iExternalCount)
 	{
-		let
-			ModulesManager = require('%PathToCoreWebclientModule%/js/ModulesManager.js')
-		;
-		ModulesManager.run('%ModuleName%', 'importExternalKeys', [aExternalKeys, res => {
-			if (res)
-			{
-				this.reloadKeysFromStorage();
-			}
-		}]);
+		const bImportResult = await this.importExternalKeys(aExternalKeys);
+		if (bImportResult)
+		{
+			this.reloadKeysFromStorage();
+		}
 	}
 	else
 	{
@@ -491,6 +519,30 @@ COpenPgp.prototype.importKeys = async function (sArmor)
 	}
 
 	return oResult;
+};
+
+/**
+ * @param {Array} aExternalKeys
+ * @return {boolean}
+ */
+COpenPgp.prototype.importExternalKeys = async function (aExternalKeys)
+{
+	let	aKeysParam = aExternalKeys.map(oKey => ({
+		Email: oKey.getEmail(),
+		Key: oKey.getArmor(),
+		Name: oKey.getUserName()
+	}));
+	let oPromiseAddKeys = new Promise((resolve, reject) => {
+		Ajax.send(
+			'%ModuleName%',
+			'AddPublicKeysToContacts',
+			{ Keys: aKeysParam },
+			oResponse => resolve(oResponse && oResponse.Result),
+			this
+		);
+	});
+
+	return await oPromiseAddKeys;
 };
 
 /**
@@ -1317,9 +1369,13 @@ COpenPgp.prototype.getCurrentUserPublicKey = async function ()
 	return mResult;
 };
 
-COpenPgp.prototype.isPrivateKeyAvailable = function ()
+COpenPgp.prototype.isPrivateKeyAvailable = async function ()
 {
-	return Storage.hasData(this.sPrefix + 'private-keys');
+	await this.oPromiseInitialised;
+	let sUserEmail = App.getUserPublicId ? App.getUserPublicId() : '';
+	let aPrivateKeys = this.findKeysByEmails([sUserEmail], /*bIsPublic*/false);
+
+	return !!aPrivateKeys.length;
 };
 
 COpenPgp.prototype.showPgpErrorByCode = function (oOpenPgpResult, sPgpAction, sDefaultError)

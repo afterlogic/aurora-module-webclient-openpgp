@@ -132,29 +132,6 @@ module.exports = function (oAppData) {
 					App.subscribeEvent('ContactsWebclient::beforeCreateContactRequest', createOrUpdateContactResult);
 					App.subscribeEvent('ContactsWebclient::beforeUpdateContactRequest', createOrUpdateContactResult);
 				}
-
-				App.subscribeEvent('%ModuleName%::reloadKeysFromStorage', aParams => {
-					let
-						fCallback = aParams[0],
-						aKeys = []
-					;
-
-					Ajax.send('%ModuleName%', 'GetPublicKeysFromContacts', {}, async oResponse => {
-						let
-							result = oResponse && oResponse.Result
-						;
-						for (let key of result)
-						{
-							let oKey = await this.getKeyInfo(key.PublicPgpKey);
-							if (oKey)
-							{
-								oKey.isExternal = true;
-								aKeys.push(oKey);
-							}
-						}
-						fCallback(aKeys);
-					}, this);
-				});
 			},
 
 			isOpenPgpEnabled: () =>
@@ -183,29 +160,6 @@ module.exports = function (oAppData) {
 				}
 
 				return oResult;
-			},
-
-			importExternalKeys: (aKeys, fCallback) =>
-			{
-				let
-					aKeysParam = []
-				;
-				for (let oKey of aKeys)
-				{
-					aKeysParam.push(
-						{
-							'Email': oKey.getEmail(),
-							'Key': oKey.getArmor(),
-							'Name': oKey.getUserName()
-						}
-					);
-				}
-				Ajax.send('%ModuleName%', 'AddPublicKeysToContacts', {'Keys': aKeysParam}, oResponse => {
-					if (oResponse && oResponse.Result)
-					{
-						fCallback(oResponse.Result);
-					}
-				}, this);
 			},
 
 			deleteExternalKey: (oKey, fCallback) =>
