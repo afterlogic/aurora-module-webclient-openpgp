@@ -1030,7 +1030,7 @@ COpenPgp.prototype.encryptData = async function (Data, aPublicKeys = [], aPrivat
 		oOptions.publicKeys = this.convertToNativeKeys(aPublicKeys);
 	}
 
-	if (bSign && aPrivateKeys && aPrivateKeys.length > 0 && !bPasswordBasedEncryption)
+	if (bSign && aPrivateKeys && aPrivateKeys.length > 0)
 	{
 		let
 			oPrivateKey = this.convertToNativeKeys(aPrivateKeys)[0],
@@ -1381,6 +1381,78 @@ COpenPgp.prototype.isPrivateKeyAvailable = async function ()
 COpenPgp.prototype.showPgpErrorByCode = function (oOpenPgpResult, sPgpAction, sDefaultError)
 {
 	ErrorsUtils.showPgpErrorByCode(oOpenPgpResult, sPgpAction, sDefaultError);
+};
+
+/**
+ * @param {string} sMessage
+ * @param {string} aPrincipalsEmail
+ * @param {boolean} bSign
+ * @param {string} sPassphrase
+ * @param {string} sFromEmail
+ * @return {COpenPgpResult}
+ */
+COpenPgp.prototype.encryptMessage = async function (sMessage, sPrincipalsEmail, bSign, sPassphrase, sFromEmail)
+{
+	const aEmailForEncrypt = this.findKeysByEmails([sFromEmail], true).length > 0
+		? [sPrincipalsEmail, sFromEmail]
+		: [sPrincipalsEmail];
+	let aPublicKeys = this.findKeysByEmails(aEmailForEncrypt, true);
+	let aPrivateKeys = this.findKeysByEmails([sFromEmail], false);
+	let oEncryptionResult = await this.encryptData(
+		sMessage,
+		aPublicKeys,
+		aPrivateKeys,
+		/*bPasswordBasedEncryption*/false,
+		bSign,
+		sPassphrase
+	);
+
+	if (oEncryptionResult.result)
+	{
+		let {data, password} = oEncryptionResult.result;
+		oEncryptionResult.result = data;
+	}
+
+	return oEncryptionResult;
+};
+
+/**
+ * @param {string} sData
+ * @param {array} aPublicKeys
+ * @param {string} sPassphrase
+ * @param {string} sPassword
+ * @return {string}
+ */
+COpenPgp.prototype.encryptAndSignWithCurrentPrivateKey = async function (sData, aPublicKeys, sPassphrase = '', bPasswordBasedEncryption = false)
+{
+	let oResult = {};
+	const oPrivateKey = await this.getCurrentUserPrivateKey();
+
+	if (oPrivateKey)
+	{
+
+		const oPGPEncryptionResult = await this.encryptData(
+			sData,
+			aPublicKeys,
+			[oPrivateKey],
+			bPasswordBasedEncryption,
+			true, /*bSign*/
+			sPassphrase
+		);
+		if (oPGPEncryptionResult.result)
+		{
+			oResult = oPGPEncryptionResult.result;
+		}
+		else if (oPGPEncryptionResult.hasErrors() || oPGPEncryptionResult.hasNotices())
+		{
+			ErrorsUtils.showPgpErrorByCode(
+				oPGPEncryptionResult,
+				Enums.PgpAction.Encrypt
+			);
+		}
+	}
+
+	return oResult;
 };
 
 module.exports = new COpenPgp();
