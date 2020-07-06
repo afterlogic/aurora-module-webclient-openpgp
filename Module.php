@@ -29,7 +29,9 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 		\Aurora\Modules\Contacts\Classes\Contact::extend(
 			self::GetName(),
 			[
-				'PgpKey'	=> ['text', null],
+				'PgpKey' => ['text', null],
+				'PgpEncryptMessages' => ['bool', false],
+				'PgpSignMessages' => ['bool', false],
 			]
 
 		);
@@ -109,9 +111,17 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 				$sPublicPgpKey = null;
 			}
 			$oContact = \Aurora\Modules\Contacts\Module::Decorator()->GetContact($mResult['UUID'], $aArgs['UserId']);
-			if ($oContact instanceof \Aurora\Modules\Contacts\Classes\Contact && $oContact->{$this->GetName() . '::PgpKey'} !== $sPublicPgpKey)
+			if ($oContact instanceof \Aurora\Modules\Contacts\Classes\Contact)
 			{
 				$oContact->{$this->GetName() . '::PgpKey'} = $sPublicPgpKey;
+				if (isset($aArgs['Contact']['PgpEncryptMessages']) && is_bool($aArgs['Contact']['PgpEncryptMessages']))
+				{
+					$oContact->{$this->GetName() . '::PgpEncryptMessages'} = $aArgs['Contact']['PgpEncryptMessages'];
+				}
+				if (isset($aArgs['Contact']['PgpSignMessages']) && is_bool($aArgs['Contact']['PgpSignMessages']))
+				{
+					$oContact->{$this->GetName() . '::PgpSignMessages'} = $aArgs['Contact']['PgpSignMessages'];
+				}
 				\Aurora\Modules\Contacts\Module::Decorator()->UpdateContactObject($oContact);
 			}
 		}
@@ -122,6 +132,8 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 		if (isset($mResult[$this->GetName() . '::PgpKey']))
 		{
 			$mResult['PublicPgpKey'] = $mResult[$this->GetName() . '::PgpKey'];
+			$mResult['PgpEncryptMessages'] = $mResult[$this->GetName() . '::PgpEncryptMessages'];
+			$mResult['PgpSignMessages'] = $mResult[$this->GetName() . '::PgpSignMessages'];
 			unset($mResult[$this->GetName() . '::PgpKey']);
 		}
 	}
