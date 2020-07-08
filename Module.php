@@ -148,7 +148,15 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 			$aContactsInfo = $this->GetContactsWithPublicKeys($aArgs['UserId'], $aContactUUIDs);
 			foreach ($mResult['List'] as &$aContact)
 			{
-				$aContact['HasPgpPublicKey'] = $aContactsInfo[$aContact['UUID']];
+				$aContact['HasPgpPublicKey'] = false;
+				$aContact['PgpEncryptMessages'] = false;
+				$aContact['PgpSignMessages'] = false;
+				if (isset($aContactsInfo[$aContact['UUID']]))
+				{
+					$aContact['HasPgpPublicKey'] = true;
+					$aContact['PgpEncryptMessages'] = $aContactsInfo[$aContact['UUID']]['PgpEncryptMessages'];
+					$aContact['PgpSignMessages'] = $aContactsInfo[$aContact['UUID']]['PgpSignMessages'];
+				}
 			}
 		}
 	}
@@ -335,26 +343,26 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 		$mResult = [];
 
-		$aContactsInfo = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsInfo(
-			\Aurora\Modules\Contacts\Enums\StorageType::Personal,
-			$UserId,
-			[
+		$aContactsInfo = (new \Aurora\System\EAV\Query())
+			->select(['UUID', 'ETag', 'Storage', 'Auto', $this->GetName() . '::PgpEncryptMessages', $this->GetName() . '::PgpSignMessages'])
+			->whereType(\Aurora\Modules\Contacts\Classes\Contact::class)
+			->where([
 				'$AND' => [
 					$this->GetName() . '::PgpKey' => ['NULL', 'IS NOT'],
 					'UUID' => [$UUIDs, 'IN']
 				]
-			]
-		);
-		$aContactUUIDs = [];
-		if (isset($aContactsInfo['Info']) && count($aContactsInfo['Info']) > 0)
+			])
+			->exec();
+
+		if (isset($aContactsInfo) && count($aContactsInfo) > 0)
 		{
-			$aContactUUIDs = array_map(function ($aValue) {
-				return $aValue['UUID'];
-			}, $aContactsInfo['Info']);
-		}
-		foreach ($UUIDs as $sUUID)
-		{
-			$mResult[$sUUID] = in_array($sUUID, $aContactUUIDs) ? true : false;
+			foreach ($aContactsInfo as $oContactInfo)
+			{
+				$mResult[$oContactInfo->UUID]  = [
+					'PgpEncryptMessages' => $oContactInfo->{$this->GetName() . '::PgpEncryptMessages'},
+					'PgpSignMessages' => $oContactInfo->{$this->GetName() . '::PgpSignMessages'}
+				];
+			}
 		}
 
 		return $mResult;
