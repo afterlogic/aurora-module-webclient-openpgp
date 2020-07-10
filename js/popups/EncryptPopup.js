@@ -136,7 +136,7 @@ CEncryptPopup.prototype.executeSignEncrypt = function ()
 	{
 		sPgpAction = Enums.PgpAction.Sign;
 		sOkReport = TextUtils.i18n('%MODULENAME%/REPORT_MESSAGE_SIGNED_SUCCSESSFULLY');
-		OpenPgp.sign(sData, sPrivateEmail, sPrivateKeyPassword, fOkHandler, fErrorHandler);
+		OpenPgp.sign(sData, sPrivateEmail, fOkHandler, fErrorHandler, sPrivateKeyPassword);
 	}
 };
 

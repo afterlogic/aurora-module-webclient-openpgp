@@ -249,7 +249,70 @@ module.exports = function (oAppData) {
 					};
 					fSuggestionsAutocompleteCallback(oRequest, fResponseWrapper)
 				};
-			}
+			},
+			
+			async askPassword(sEmail, fCallback)
+			{
+				let OpenPgp = require('modules/%ModuleName%/js/OpenPgp.js');
+				let sPrivateKeyPassword = await OpenPgp.askForKeyPassword(sEmail);
+				fCallback(sPrivateKeyPassword);
+			},
+			
+			encryptSign(bEncrypt, bSign, sData, aPrincipalsEmail, fOkCallback, sFromEmail = '', sPrivateKeyPassword = null)
+			{
+				var
+					Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
+					
+					ErrorsUtils = require('modules/%ModuleName%/js/utils/Errors.js'),
+
+					Enums = require('modules/%ModuleName%/js/Enums.js'),
+					OpenPgp = require('modules/%ModuleName%/js/OpenPgp.js')
+				;
+				var
+					sPrivateEmail = bSign ? sFromEmail : '',
+					sOkReport = '',
+					sPgpAction = '',
+					fOkHandler = _.bind(function (oRes) {
+						if (_.isFunction(fOkCallback))
+						{
+							fOkCallback(oRes.result, bEncrypt);
+						}
+					}, this),
+					fErrorHandler = function (oRes) {
+						ErrorsUtils.showPgpErrorByCode(oRes, sPgpAction);
+					}
+				;
+
+				if (bEncrypt)
+				{
+					if (aPrincipalsEmail.length === 0)
+					{
+						Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_TO_ENCRYPT_SPECIFY_RECIPIENTS'));
+					}
+					else
+					{
+						var
+							aUserEmail = [sFromEmail],
+							aEmailForEncrypt = OpenPgp.findKeysByEmails(aUserEmail, true).length > 0 ? _.union(aPrincipalsEmail, aUserEmail) : aPrincipalsEmail
+						;
+						if (bSign)
+						{
+							sPgpAction = Enums.PgpAction.EncryptSign;
+							OpenPgp.signAndEncrypt(sData, sPrivateEmail, aEmailForEncrypt, sPrivateKeyPassword, fOkHandler, fErrorHandler);
+						}
+						else
+						{
+							sPgpAction = Enums.PgpAction.Encrypt;
+							OpenPgp.encrypt(sData, aEmailForEncrypt, fOkHandler, fErrorHandler);
+						}
+					}
+				}
+				else if (bSign)
+				{
+					sPgpAction = Enums.PgpAction.Sign;
+					OpenPgp.sign(sData, sPrivateEmail, fOkHandler, fErrorHandler, sPrivateKeyPassword);
+				}
+			},
 		};
 	}
 

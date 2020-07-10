@@ -880,7 +880,7 @@ COpenPgp.prototype.encrypt = async function (sData, aPrincipalsEmail, fOkHandler
  * @param {Function} fErrorHandler
  * @return {string}
  */
-COpenPgp.prototype.sign = async function (sData, sFromEmail, sPrivateKeyPassword, fOkHandler, fErrorHandler)
+COpenPgp.prototype.sign = async function (sData, sFromEmail, fOkHandler, fErrorHandler, sPrivateKeyPassword = null)
 {
 	let
 		oResult = new COpenPgpResult(),
@@ -893,6 +893,15 @@ COpenPgp.prototype.sign = async function (sData, sFromEmail, sPrivateKeyPassword
 	{
 		oPrivateKey = this.convertToNativeKeys(aPrivateKeys)[0];
 		oPrivateKeyClone = await this.cloneKey(oPrivateKey);
+
+		if (sPrivateKeyPassword === null)
+		{
+			sPrivateKeyPassword = await this.askForKeyPassword(aPrivateKeys[0].getUser());
+			if (sPrivateKeyPassword === false)
+			{//user cancel operation
+				return;
+			}
+		}
 
 		await this.decryptKeyHelper(oResult, oPrivateKeyClone, sPrivateKeyPassword, sFromEmail);
 
