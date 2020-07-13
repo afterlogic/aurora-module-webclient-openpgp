@@ -34,7 +34,7 @@ COpenPgpKey.prototype.pgpKey = null;
 /**
  * @type {string}
  */
-COpenPgpKey.prototype.passphrase = '';
+COpenPgpKey.prototype.passphrase = null;
 
 /**
  * @type {Object}

@@ -251,10 +251,10 @@ module.exports = function (oAppData) {
 				};
 			},
 			
-			async askPassword(sEmail, fCallback)
+			async getPrivateKeyPassword(sEmail, fCallback)
 			{
 				let OpenPgp = require('modules/%ModuleName%/js/OpenPgp.js');
-				let sPrivateKeyPassword = await OpenPgp.askForKeyPassword(sEmail);
+				let sPrivateKeyPassword = await OpenPgp.getPrivateKeyPassword(sEmail);
 				fCallback(sPrivateKeyPassword);
 			},
 			
