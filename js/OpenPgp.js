@@ -143,6 +143,11 @@ COpenPgp.prototype.getPublicKeysFromContacts = async function ()
 			async oResponse => {
 				let aKeys = [];
 				let	result = oResponse && oResponse.Result;
+				if (!result.length)
+				{
+					resolve(aKeys);
+					return false;
+				}
 				for (let key of result)
 				{
 					let oNativeKey = await openpgp.key.readArmored(key.PublicPgpKey);

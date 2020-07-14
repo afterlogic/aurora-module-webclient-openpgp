@@ -19,7 +19,7 @@ module.exports = function (oAppData) {
 		Ajax = require('%PathToCoreWebclientModule%/js/Ajax.js')
 	;
 
-	if (App.isUserNormalOrTenant())
+	if (App.getUserRole() !== Enums.UserRole.SuperAdmin)
 	{
 		let
 			_ = require('underscore'),
