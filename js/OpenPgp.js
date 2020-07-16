@@ -1483,43 +1483,4 @@ COpenPgp.prototype.encryptMessage = async function (sMessage, sPrincipalsEmail, 
 	return oEncryptionResult;
 };
 
-/**
- * @param {string} sData
- * @param {array} aPublicKeys
- * @param {string} sPassphrase
- * @param {string} sPassword
- * @return {string}
- */
-COpenPgp.prototype.encryptAndSignWithCurrentPrivateKey = async function (sData, aPublicKeys, sPassphrase = '', bPasswordBasedEncryption = false)
-{
-	let oResult = {};
-	const oPrivateKey = await this.getCurrentUserPrivateKey();
-
-	if (oPrivateKey)
-	{
-
-		const oPGPEncryptionResult = await this.encryptData(
-			sData,
-			aPublicKeys,
-			[oPrivateKey],
-			bPasswordBasedEncryption,
-			true, /*bSign*/
-			sPassphrase
-		);
-		if (oPGPEncryptionResult.result)
-		{
-			oResult = oPGPEncryptionResult.result;
-		}
-		else if (oPGPEncryptionResult.hasErrors() || oPGPEncryptionResult.hasNotices())
-		{
-			ErrorsUtils.showPgpErrorByCode(
-				oPGPEncryptionResult,
-				Enums.PgpAction.Encrypt
-			);
-		}
-	}
-
-	return oResult;
-};
-
 module.exports = new COpenPgp();
