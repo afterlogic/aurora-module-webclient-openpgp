@@ -77,15 +77,15 @@ COpenPgpSettingsFormView.prototype.ViewTemplate = '%ModuleName%_OpenPgpSettingsF
 
 COpenPgpSettingsFormView.prototype.exportAllPublicKeys = function ()
 {
-	var sArmors = '';
+	var
+		aArmors = _.map(_.union(this.publicKeys(), this.externalPublicKeys()), function (oKey) {
+			return oKey.armor;
+		})
+	;
 
-	_.each(this.publicKeys(), function (oKey) {
-		sArmors += oKey.armor;
-	});
-
-	if (sArmors !== '')
+	if (aArmors.length > 0)
 	{
-		Popups.showPopup(ShowPublicKeysArmorPopup, [sArmors]);
+		Popups.showPopup(ShowPublicKeysArmorPopup, [aArmors.join('\n')]);
 	}
 };
 
