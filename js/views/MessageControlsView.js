@@ -26,6 +26,7 @@ function CMessageControlsView()
 	this.sActionDecryptText = ko.observable('');
 	this.oEncryptionKey = null;
 	
+	this.isEncryptedMessage = ko.observable(false);
 	this.visibleDecryptControl = ko.observable(false);
 	this.visibleVerifyControl = ko.observable(false);
 }
@@ -40,6 +41,7 @@ CMessageControlsView.prototype.reset = function ()
 	
 	this.decryptPassword('');
 	
+	this.isEncryptedMessage(false);
 	this.visibleDecryptControl(false);
 	this.visibleVerifyControl(false);
 };
@@ -79,9 +81,9 @@ CMessageControlsView.prototype.doAfterPopulatingMessage = function (oMessageProp
 
 		if (Settings.enableOpenPgp())
 		{
-			let bEncryptedMessage = oMessageProps.sText.indexOf('-----BEGIN PGP MESSAGE-----') !== -1;
+			this.isEncryptedMessage(oMessageProps.sText.indexOf('-----BEGIN PGP MESSAGE-----') !== -1);
 			this.visibleVerifyControl(oMessageProps.sText.indexOf('-----BEGIN PGP SIGNED MESSAGE-----') !== -1);
-			if (bEncryptedMessage)
+			if (this.isEncryptedMessage())
 			{
 				OpenPgp.getEncryptionKeyFromArmoredMessage(this.sText)
 					.then(oEncryptionKey => {
@@ -97,7 +99,7 @@ CMessageControlsView.prototype.doAfterPopulatingMessage = function (oMessageProp
 						}
 					});
 			}
-			this.visibleDecryptControl(bEncryptedMessage);
+			this.visibleDecryptControl(this.isEncryptedMessage());
 		}
 		else
 		{
