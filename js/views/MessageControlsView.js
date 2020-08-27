@@ -126,6 +126,7 @@ CMessageControlsView.prototype.decryptMessage = function ()
 				this.oMessagePane.changeText('<pre>' + TextUtils.encodeHtml(oRes.result) + '</pre>');
 
 				this.decryptPassword('');
+				this.isEncryptedMessage(false);
 				this.visibleDecryptControl(false);
 
 				if (!oRes.notices)
