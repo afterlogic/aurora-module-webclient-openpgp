@@ -880,12 +880,12 @@ COpenPgp.prototype.encrypt = async function (sData, aPrincipalsEmail, fOkHandler
 /**
  * @param {string} sData
  * @param {string} sFromEmail
- * @param {string} sPrivateKeyPassword
+ * @param {string} sPassphrase
  * @param {Function} fOkHandler
  * @param {Function} fErrorHandler
  * @return {string}
  */
-COpenPgp.prototype.sign = async function (sData, sFromEmail, fOkHandler, fErrorHandler, sPrivateKeyPassword = null)
+COpenPgp.prototype.sign = async function (sData, sFromEmail, fOkHandler, fErrorHandler, sPassphrase = '')
 {
 	let
 		oResult = new COpenPgpResult(),
@@ -899,16 +899,23 @@ COpenPgp.prototype.sign = async function (sData, sFromEmail, fOkHandler, fErrorH
 		oPrivateKey = this.convertToNativeKeys(aPrivateKeys)[0];
 		oPrivateKeyClone = await this.cloneKey(oPrivateKey);
 
-		if (sPrivateKeyPassword === null)
+		if (sPassphrase === '')
 		{
-			sPrivateKeyPassword = await this.askForKeyPassword(aPrivateKeys[0].getUser());
-			if (sPrivateKeyPassword === false)
-			{//user cancel operation
-				return;
+			sPassphrase = await this.askForKeyPassword(aPrivateKeys[0].getUser());
+			if (sPassphrase === false)
+			{
+				// returning userCanceled status so that error message won't be shown
+				oResult.userCanceled = true;
+				return oResult;
+			}
+			else
+			{
+				// returning passphrase so that it won't be asked again until current action popup is closed
+				oResult.passphrase = sPassphrase;
 			}
 		}
 
-		await this.decryptKeyHelper(oResult, oPrivateKeyClone, sPrivateKeyPassword, sFromEmail);
+		await this.decryptKeyHelper(oResult, oPrivateKeyClone, sPassphrase, sFromEmail);
 
 		if (oPrivateKeyClone && !oResult.hasErrors())
 		{
@@ -946,12 +953,12 @@ COpenPgp.prototype.sign = async function (sData, sFromEmail, fOkHandler, fErrorH
  * @param {string} sData
  * @param {string} sFromEmail
  * @param {Array} aPrincipalsEmail
- * @param {string} sPrivateKeyPassword
+ * @param {string} sPassphrase
  * @param {Function} fOkHandler
  * @param {Function} fErrorHandler
  * @return {string}
  */
-COpenPgp.prototype.signAndEncrypt = async function (sData, sFromEmail, aPrincipalsEmail, sPrivateKeyPassword, fOkHandler, fErrorHandler)
+COpenPgp.prototype.signAndEncrypt = async function (sData, sFromEmail, aPrincipalsEmail, sPassphrase, fOkHandler, fErrorHandler)
 {
 	let
 		oPrivateKey = null,
@@ -970,7 +977,7 @@ COpenPgp.prototype.signAndEncrypt = async function (sData, sFromEmail, aPrincipa
 				aPrivateKeys,
 				false, //bPasswordBasedEncryption
 				true, //bSign
-				sPrivateKeyPassword //sPassphrase
+				sPassphrase
 			);
 			if (oEncryptionResult.result)
 			{
@@ -1061,8 +1068,15 @@ COpenPgp.prototype.encryptData = async function (Data, aPublicKeys = [], aPrivat
 		{
 			sPassphrase = await this.askForKeyPassword(aPrivateKeys[0].getUser());
 			if (sPassphrase === false)
-			{//user cancel operation
+			{
+				// returning userCanceled status so that error message won't be shown
+				oResult.userCanceled = true;
 				return oResult;
+			}
+			else
+			{
+				// returning passphrase so that it won't be asked again until current action popup is closed
+				oResult.passphrase = sPassphrase;
 			}
 		}
 		await this.decryptKeyHelper(oResult, oPrivateKeyClone, sPassphrase, aPrivateKeys[0].getEmail());
@@ -1162,8 +1176,15 @@ COpenPgp.prototype.decryptData = async function (Data, sPassword = '', bPassword
 			{
 				sPassphrase = await this.askForKeyPassword(aPrivateKeys[0].getUser());
 				if (sPassphrase === false)
-				{//user cancel operation
+				{
+					// returning userCanceled status so that error message won't be shown
+					oResult.userCanceled = true;
 					return oResult;
+				}
+				else
+				{
+					// returning passphrase so that it won't be asked again until current action popup is closed
+					oResult.passphrase = sPassphrase;
 				}
 			}
 			sEmail = aPrivateKeys[0].getEmail();

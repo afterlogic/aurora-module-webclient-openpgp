@@ -22,8 +22,6 @@ function CMessageControlsView()
 	this.sAccountEmail = '';
 	this.sFromEmail = '';
 	
-	this.decryptPassword = ko.observable('');
-	this.sActionDecryptText = ko.observable('');
 	this.oEncryptionKey = null;
 	
 	this.isEncryptedMessage = ko.observable(false);
@@ -38,8 +36,6 @@ CMessageControlsView.prototype.reset = function ()
 	this.sText = '';
 	this.sAccountEmail = '';
 	this.sFromEmail = '';
-	
-	this.decryptPassword('');
 	
 	this.isEncryptedMessage(false);
 	this.visibleDecryptControl(false);
@@ -77,8 +73,6 @@ CMessageControlsView.prototype.doAfterPopulatingMessage = function (oMessageProp
 		this.sAccountEmail = oMessageProps.sAccountEmail;
 		this.sFromEmail = oMessageProps.sFromEmail;
 
-		this.decryptPassword('');
-
 		if (Settings.enableOpenPgp())
 		{
 			this.isEncryptedMessage(oMessageProps.sText.indexOf('-----BEGIN PGP MESSAGE-----') !== -1);
@@ -89,7 +83,6 @@ CMessageControlsView.prototype.doAfterPopulatingMessage = function (oMessageProp
 					.then(oEncryptionKey => {
 						if (oEncryptionKey)
 						{
-							this.sActionDecryptText(TextUtils.i18n('%MODULENAME%/LABEL_ENTER_YOUR_PASSWORD', {'KEY': oEncryptionKey.getEmail()}));
 							this.visibleDecryptControl(true);
 							this.oEncryptionKey = oEncryptionKey;
 						}
@@ -119,13 +112,11 @@ CMessageControlsView.prototype.doAfterPopulatingMessage = function (oMessageProp
 CMessageControlsView.prototype.decryptMessage = function ()
 {
 	var
-		sPrivateKeyPassword = $.trim(this.decryptPassword()),
 		fOkHandler = _.bind(function (oRes) {
 			if (oRes && oRes.result && !oRes.errors && this.oMessagePane)
 			{
 				this.oMessagePane.changeText('<pre>' + TextUtils.encodeHtml(oRes.result) + '</pre>');
 
-				this.decryptPassword('');
 				this.isEncryptedMessage(false);
 				this.visibleDecryptControl(false);
 
@@ -151,7 +142,7 @@ CMessageControlsView.prototype.decryptMessage = function ()
 		}
 	;
 	
-	OpenPgp.decryptAndVerify(this.sText, this.oEncryptionKey, this.sFromEmail, sPrivateKeyPassword, fOkHandler, fErrorHandler);
+	OpenPgp.decryptAndVerify(this.sText, this.oEncryptionKey, this.sFromEmail, '', fOkHandler, fErrorHandler);
 };
 
 CMessageControlsView.prototype.verifyMessage = function ()
