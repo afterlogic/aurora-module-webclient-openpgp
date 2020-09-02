@@ -67,16 +67,7 @@ CImportKeyPopup.prototype.checkArmor = async function ()
 {
 	var
 		aRes = null,
-		aKeysBroken = [
-//			{
-//				'armor': 'oKey.getArmor()',
-//				'email': 'oKey.user',
-//				'id': 'oKey.getId()',
-//				'addInfo': TextUtils.i18n('%MODULENAME%/INFO_PUBLIC_KEY_LENGTH', {'LENGTH': 34534}),
-//				'needToImport': false,
-//				'isExternal': true
-//			}
-		],
+		aKeysBroken = [],
 		aKeysAlreadyThere = [],
 		aKeysPrivateExternal = [],
 		aKeysToImport = []
