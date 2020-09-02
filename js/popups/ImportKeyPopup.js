@@ -4,12 +4,15 @@ var
 	_ = require('underscore'),
 	ko = require('knockout'),
 
+	AddressUtils = require('%PathToCoreWebclientModule%/js/utils/Address.js'),
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
 	Types = require('%PathToCoreWebclientModule%/js/utils/Types.js'),
-	AddressUtils = require('%PathToCoreWebclientModule%/js/utils/Address.js'),
-	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
+	
 	CAbstractPopup = require('%PathToCoreWebclientModule%/js/popups/CAbstractPopup.js'),
+	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
+	
 	ErrorsUtils = require('modules/%ModuleName%/js/utils/Errors.js'),
+	
 	Enums = require('modules/%ModuleName%/js/Enums.js'),
 	OpenPgp = require('modules/%ModuleName%/js/OpenPgp.js')
 ;
@@ -23,13 +26,14 @@ function CImportKeyPopup()
 
 	this.keyArmor = ko.observable('');
 	this.keyArmorFocused = ko.observable(false);
-	this.keys = ko.observableArray([]);
-	this.hasExistingKeys = ko.observable(false);
-	this.bHasKeyWithoutEmail =ko.observable(false);
+	
+	this.keysBroken = ko.observableArray([]);
+	this.keysAlreadyThere = ko.observableArray([]);
+	this.keysPrivateExternal = ko.observableArray([]);
+	this.keysToImport = ko.observableArray([]);
+	this.keysChecked = ko.observable(false);
+	
 	this.fOnSuccessCallback = null;
-	this.headlineText = ko.computed(function () {
-		return TextUtils.i18n('%MODULENAME%/INFO_TEXT_INCLUDES_KEYS_PLURAL', {}, null, this.keys().length);
-	}, this);
 }
 
 _.extendOwn(CImportKeyPopup.prototype, CAbstractPopup.prototype);
@@ -44,8 +48,13 @@ CImportKeyPopup.prototype.onOpen = function (sArmor, fOnSuccessCallback)
 {
 	this.keyArmor(sArmor || '');
 	this.keyArmorFocused(true);
-	this.keys([]);
-	this.hasExistingKeys(false);
+	
+	this.keysBroken([]);
+	this.keysAlreadyThere([]);
+	this.keysPrivateExternal([]);
+	this.keysToImport([]);
+	this.keysChecked(false);
+	
 	this.fOnSuccessCallback = fOnSuccessCallback;
 
 	if (this.keyArmor() !== '')
@@ -58,9 +67,19 @@ CImportKeyPopup.prototype.checkArmor = async function ()
 {
 	var
 		aRes = null,
-		aKeys = [],
-		bHasExistingKeys = false,
-		bHasKeyWithoutEmail = false
+		aKeysBroken = [
+//			{
+//				'armor': 'oKey.getArmor()',
+//				'email': 'oKey.user',
+//				'id': 'oKey.getId()',
+//				'addInfo': TextUtils.i18n('%MODULENAME%/INFO_PUBLIC_KEY_LENGTH', {'LENGTH': 34534}),
+//				'needToImport': false,
+//				'isExternal': true
+//			}
+		],
+		aKeysAlreadyThere = [],
+		aKeysPrivateExternal = [],
+		aKeysToImport = []
 	;
 
 	if (this.keyArmor() === '')
@@ -82,30 +101,46 @@ CImportKeyPopup.prototype.checkArmor = async function ()
 						sAddInfoLangKey = oKey.isPublic() ? '%MODULENAME%/INFO_PUBLIC_KEY_LENGTH' : '%MODULENAME%/INFO_PRIVATE_KEY_LENGTH',
 						bNoEmail = !AddressUtils.isCorrectEmail(oKey.getEmail())
 					;
-					bHasExistingKeys = bHasExistingKeys || bHasSameKey;
-					bHasKeyWithoutEmail = bHasKeyWithoutEmail || bNoEmail;
-					aKeys.push({
+					var oKeyData = {
 						'armor': oKey.getArmor(),
 						'email': oKey.user,
 						'id': oKey.getId(),
 						'addInfo': TextUtils.i18n(sAddInfoLangKey, {'LENGTH': oKey.getBitSize()}),
 						'needToImport': ko.observable(!bHasSameKey && !bNoEmail),
-						'disabled': bHasSameKey || bNoEmail,
-						'noEmail': bNoEmail,
 						'isExternal': !OpenPgp.isOwnEmail(oKey.getEmail())
-					});
+					};
+					if (bNoEmail)
+					{
+						aKeysBroken.push(oKeyData);
+					}
+					else if (bHasSameKey)
+					{
+						aKeysAlreadyThere.push(oKeyData);
+					}
+					else if (!oKey.isPublic() && !OpenPgp.isOwnEmail(oKey.getEmail()))
+					{
+						aKeysPrivateExternal.push(oKeyData);
+					}
+					else
+					{
+						aKeysToImport.push(oKeyData);
+					}
 				}
 			});
 		}
 
-		if (aKeys.length === 0)
+		if (aKeysBroken.length > 0 || aKeysAlreadyThere.length > 0 || aKeysPrivateExternal.length > 0 || aKeysToImport.length > 0)
+		{
+			this.keysBroken(aKeysBroken);
+			this.keysAlreadyThere(aKeysAlreadyThere);
+			this.keysPrivateExternal(aKeysPrivateExternal);
+			this.keysToImport(aKeysToImport);
+			this.keysChecked(true);
+		}
+		else
 		{
 			Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_IMPORT_NO_KEY_FOUND'));
 		}
-
-		this.keys(aKeys);
-		this.hasExistingKeys(bHasExistingKeys);
-		this.bHasKeyWithoutEmail(bHasKeyWithoutEmail);
 	}
 };
 
@@ -116,7 +151,7 @@ CImportKeyPopup.prototype.importKey = async function ()
 		aArmors = []
 	;
 
-	_.each(this.keys(), oSimpleKey => {
+	_.each(this.keysToImport(), oSimpleKey => {
 		if (oSimpleKey.needToImport())
 		{
 			aArmors.push(oSimpleKey.armor);
