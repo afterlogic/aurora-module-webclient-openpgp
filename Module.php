@@ -218,6 +218,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
 		$bResult = false;
+		$aUpdatedContactIds = [];
 
 		if (\MailSo\Base\Validator::SimpleEmailString($Email))
 		{
@@ -256,29 +257,35 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 					{
 						$oContact->{$this->GetName() . '::PgpKey'} = $Key;
 						\Aurora\Modules\Contacts\Module::Decorator()->UpdateContactObject($oContact);
+						$aUpdatedContactIds[] = $oContact->UUID;
 					}
 				}
 
-				$bResult = true;
+				// $bResult = true;
 			}
 		}
 
-		return $bResult;
+		return $aUpdatedContactIds;
 	}
 
 	public function AddPublicKeysToContacts($UserId, $Keys)
 	{
 		$mResult = false;
+		$aUpdatedContactIds = [];
+		
 		foreach ($Keys as $aKey)
 		{
 			if (isset($aKey['Email'], $aKey['Key']))
 			{
 				$sUserName = isset($aKey['Name']) ? $aKey['Name'] : '';
 				$mResult = $this->AddPublicKeyToContact($UserId, $aKey['Email'], $aKey['Key'], $sUserName);
+				if (is_array($mResult)) {
+					$aUpdatedContactIds = array_merge($aUpdatedContactIds, $mResult);
+				}
 			}
 		}
 
-		return $mResult;
+		return $aUpdatedContactIds;
 	}
 
 	public function RemovePublicKeyFromContact($UserId, $Email)
