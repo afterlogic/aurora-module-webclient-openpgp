@@ -42,8 +42,6 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 		$this->subscribeEvent('Contacts::CreateContact::after', array($this, 'onAfterCreateOrUpdateContact'));
 		$this->subscribeEvent('Contacts::UpdateContact::after', array($this, 'onAfterCreateOrUpdateContact'));
 		$this->subscribeEvent('Contacts::GetContacts::after', array($this, 'onAfterGetContacts'));
-
-		$this->subscribeEvent('Contacts::Contact::ToResponseArray', array($this, 'onContactsContactToResponseArray'));
 	}
 
 	/**
@@ -124,17 +122,6 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 				}
 				\Aurora\Modules\Contacts\Module::Decorator()->UpdateContactObject($oContact);
 			}
-		}
-	}
-
-	public function onContactsContactToResponseArray($aArgs, &$mResult)
-	{
-		if (isset($mResult[$this->GetName() . '::PgpKey']))
-		{
-			$mResult['PublicPgpKey'] = $mResult[$this->GetName() . '::PgpKey'];
-			$mResult['PgpEncryptMessages'] = $mResult[$this->GetName() . '::PgpEncryptMessages'];
-			$mResult['PgpSignMessages'] = $mResult[$this->GetName() . '::PgpSignMessages'];
-			unset($mResult[$this->GetName() . '::PgpKey']);
 		}
 	}
 
