@@ -422,6 +422,10 @@ COpenPgp.prototype.splitKeys = function (sArmor)
 
 COpenPgp.prototype.isOwnEmail = function (sEmail)
 {
+	if (sEmail === App.getUserPublicId())
+	{
+		return true;
+	}
 	let
 		ModulesManager = require('%PathToCoreWebclientModule%/js/ModulesManager.js'),
 		aOwnEmails = ModulesManager.run('MailWebclient', 'getAllAccountsFullEmails') || []
