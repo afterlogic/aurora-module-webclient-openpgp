@@ -16,6 +16,7 @@ function PGPKeyPasswordPopup()
 	CAbstractPopup.call(this);
 
 	this.keyPassword = ko.observable('');
+	this.keyPasswordFocused = ko.observable(false);
 	this.fOnPasswordEnterCallback = null;
 	this.fOnCancellCallback = null;
 	this.sHintText = ko.observable('');
@@ -33,6 +34,7 @@ PGPKeyPasswordPopup.prototype.onOpen = function (sKeyName, fOnPasswordEnterCallb
 	));
 	this.fOnPasswordEnterCallback = fOnPasswordEnterCallback;
 	this.fOnCancellCallback = fOnCancellCallback;
+	this.keyPasswordFocused(true);
 };
 
 PGPKeyPasswordPopup.prototype.enterPassword = function ()
