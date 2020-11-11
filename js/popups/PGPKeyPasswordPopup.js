@@ -16,6 +16,7 @@ function PGPKeyPasswordPopup()
 	CAbstractPopup.call(this);
 
 	this.keyPassword = ko.observable('');
+	this.keyPasswordDom = ko.observable(null);
 	this.keyPasswordFocused = ko.observable(false);
 	this.fOnPasswordEnterCallback = null;
 	this.fOnCancellCallback = null;
@@ -41,9 +42,12 @@ PGPKeyPasswordPopup.prototype.enterPassword = function ()
 {
 	if (_.isFunction(this.fOnPasswordEnterCallback))
 	{
+		// sometimes nockoutjs conflicts with saved passwords in FF
+		this.keyPassword($(this.keyPasswordDom()).val());
 		this.fOnPasswordEnterCallback(this.keyPassword());
 	}
 	this.closePopup();
+	return false; // stopPropagation
 };
 
 PGPKeyPasswordPopup.prototype.cancelPopup = function ()
