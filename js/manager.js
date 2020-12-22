@@ -315,6 +315,16 @@ module.exports = function (oAppData) {
 			},
 		};
 	}
+	else
+	{
+		return {
+			getOpenPgpEncryptor()
+			{
+				let OpenPgp = require('modules/%ModuleName%/js/OpenPgp.js');
+				return OpenPgp;
+			}
+		};
+	}
 
 	return null;
 };
