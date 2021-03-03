@@ -116,6 +116,7 @@ COpenPgp.prototype.reloadKeysFromStorage = async function ()
 {
 	let
 		aKeys = [],
+		aExternalKeys = [],
 		oOpenpgpKeys = this.oKeyring.getAllKeys()
 	;
 
@@ -126,7 +127,11 @@ COpenPgp.prototype.reloadKeysFromStorage = async function ()
 		}
 	});
 
-	const aExternalKeys = await this.getPublicKeysFromContacts();
+	if (App.isUserNormalOrTenant())
+	{
+		aExternalKeys = await this.getPublicKeysFromContacts();
+	}
+
 	this.keys([...aKeys, ...aExternalKeys]);
 };
 
