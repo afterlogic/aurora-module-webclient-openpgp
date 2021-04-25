@@ -1067,7 +1067,7 @@ COpenPgp.prototype.encryptData = async function (Data, aPublicKeys = [], aPrivat
 			oPrivateKeyClone = await this.cloneKey(oPrivateKey),
 			sStoredPassphrase = aPrivateKeys[0].getPassphrase()
 		;
-		
+
 		if (sStoredPassphrase && !sPassphrase)
 		{
 			sPassphrase = sStoredPassphrase;
@@ -1270,43 +1270,49 @@ COpenPgp.prototype.getPrivateKeyPassword = async function (sEmail)
 {
 	let
 		oResult = new COpenPgpResult(),
-		aPrivateKeys = this.findKeysByEmails([sEmail], false, oResult),
-		oPrivateKey = this.convertToNativeKeys(aPrivateKeys)[0],
-		oPrivateKeyClone = await this.cloneKey(oPrivateKey),
-		sStoredPassphrase = aPrivateKeys[0].getPassphrase(),
-		sPassphrase = null
+		aPrivateKeys = this.findKeysByEmails([sEmail], false, oResult)
 	;
-	
-	if (sStoredPassphrase)
-	{
-		sPassphrase = sStoredPassphrase;
-	}
 
-	if (!sPassphrase)
+	if (Types.isNonEmptyArray(aPrivateKeys))
 	{
-		sPassphrase = await this.askForKeyPassword(aPrivateKeys[0].getUser());
-		if (sPassphrase === false)
-		{//user cancel operation
-			return null;
+		let
+			oPrivateKey = this.convertToNativeKeys(aPrivateKeys)[0],
+			oPrivateKeyClone = await this.cloneKey(oPrivateKey),
+			sStoredPassphrase = aPrivateKeys[0].getPassphrase(),
+			sPassphrase = null
+		;
+
+		if (sStoredPassphrase)
+		{
+			sPassphrase = sStoredPassphrase;
+		}
+
+		if (!sPassphrase)
+		{
+			sPassphrase = await this.askForKeyPassword(aPrivateKeys[0].getUser());
+			if (sPassphrase === false)
+			{//user cancel operation
+				return null;
+			}
+		}
+
+		await this.decryptKeyHelper(oResult, oPrivateKeyClone, sPassphrase, sEmail);
+
+		if (
+			!oResult.hasErrors()
+			&& !sStoredPassphrase
+			&& Settings.rememberPassphrase()
+		)
+		{
+			aPrivateKeys[0].setPassphrase(sPassphrase);
+		}
+
+		if (!oResult.hasErrors())
+		{
+			return sPassphrase;
 		}
 	}
-	
-	await this.decryptKeyHelper(oResult, oPrivateKeyClone, sPassphrase, sEmail);
 
-	if (
-		!oResult.hasErrors()
-		&& !sStoredPassphrase
-		&& Settings.rememberPassphrase()
-	)
-	{
-		aPrivateKeys[0].setPassphrase(sPassphrase);
-	}
-
-	if (!oResult.hasErrors())
-	{
-		return sPassphrase;
-	}
-	
 	return null;
 };
 
