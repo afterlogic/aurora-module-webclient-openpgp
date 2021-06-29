@@ -7,6 +7,8 @@
 
 namespace Aurora\Modules\OpenPgpWebclient;
 
+use Aurora\Modules\Contacts\Models\Contact;
+
 /**
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
  * @license https://afterlogic.com/products/common-licensing Afterlogic Software License
@@ -18,24 +20,6 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 {
 	public function init()
 	{
-		\Aurora\Modules\Core\Classes\User::extend(
-			self::GetName(),
-			[
-				'EnableModule'			=> ['bool', false],
-				'RememberPassphrase'	=> ['bool', false]
-			]
-		);
-
-		\Aurora\Modules\Contacts\Classes\Contact::extend(
-			self::GetName(),
-			[
-				'PgpKey' => ['text', null],
-				'PgpEncryptMessages' => ['bool', false],
-				'PgpSignMessages' => ['bool', false],
-			]
-
-		);
-
 		$this->subscribeEvent('Files::PopulateFileItem::after', array($this, 'onAfterPopulateFileItem'));
 		$this->subscribeEvent('Mail::GetBodyStructureParts', array($this, 'onGetBodyStructureParts'));
 		$this->subscribeEvent('Mail::ExtendMessageData', array($this, 'onExtendMessageData'));
@@ -109,16 +93,16 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 				$sPublicPgpKey = null;
 			}
 			$oContact = \Aurora\Modules\Contacts\Module::Decorator()->GetContact($mResult['UUID'], $aArgs['UserId']);
-			if ($oContact instanceof \Aurora\Modules\Contacts\Classes\Contact)
+			if ($oContact instanceof Contact)
 			{
-				$oContact->{$this->GetName() . '::PgpKey'} = $sPublicPgpKey;
+				$oContact->setExtendedProp($this->GetName() . '::PgpKey', $sPublicPgpKey);
 				if (isset($aArgs['Contact']['PgpEncryptMessages']) && is_bool($aArgs['Contact']['PgpEncryptMessages']))
 				{
-					$oContact->{$this->GetName() . '::PgpEncryptMessages'} = $aArgs['Contact']['PgpEncryptMessages'];
+					$oContact->setExtendedProp($this->GetName() . '::PgpEncryptMessages', $aArgs['Contact']['PgpEncryptMessages']);
 				}
 				if (isset($aArgs['Contact']['PgpSignMessages']) && is_bool($aArgs['Contact']['PgpSignMessages']))
 				{
-					$oContact->{$this->GetName() . '::PgpSignMessages'} = $aArgs['Contact']['PgpSignMessages'];
+					$oContact->setExtendedProp($this->GetName() . '::PgpSignMessages', $aArgs['Contact']['PgpSignMessages']);
 				}
 				\Aurora\Modules\Contacts\Module::Decorator()->UpdateContactObject($oContact);
 			}
@@ -184,10 +168,10 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 			if ($oUser->isNormalOrTenant())
 			{
 				$oCoreDecorator = \Aurora\Modules\Core\Module::Decorator();
-				$oUser->{self::GetName().'::EnableModule'} = $EnableModule;
+				$oUser->setExtendedProp(self::GetName().'::EnableModule', $EnableModule);
 				if (isset($RememberPassphrase))
 				{
-					$oUser->{self::GetName().'::RememberPassphrase'} = $RememberPassphrase;
+					$oUser->setExtendedProp(self::GetName().'::RememberPassphrase', $RememberPassphrase);
 				}
 				return $oCoreDecorator->UpdateUserObject($oUser);
 			}
@@ -227,7 +211,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 				if (isset($mResult['UUID']))
 				{
 					$oContact = \Aurora\Modules\Contacts\Module::Decorator()->GetContact($mResult['UUID'], $UserId);
-					if ($oContact instanceof \Aurora\Modules\Contacts\Classes\Contact &&
+					if ($oContact instanceof Contact &&
 						$oContact->Storage === \Aurora\Modules\Contacts\Enums\StorageType::Personal)
 					{
 						$aContacts = [$oContact];
@@ -239,10 +223,10 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 			{
 				foreach ($aContacts as $oContact)
 				{
-					if ($oContact instanceof \Aurora\Modules\Contacts\Classes\Contact &&
+					if ($oContact instanceof Contact &&
 						$oContact->Storage === \Aurora\Modules\Contacts\Enums\StorageType::Personal)
 					{
-						$oContact->{$this->GetName() . '::PgpKey'} = $Key;
+						$oContact->setExtendedProp($this->GetName() . '::PgpKey', $Key);
 						\Aurora\Modules\Contacts\Module::Decorator()->UpdateContactObject($oContact);
 						$aUpdatedContactIds[] = $oContact->UUID;
 					}
@@ -259,7 +243,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 	{
 		$mResult = false;
 		$aUpdatedContactIds = [];
-		
+
 		foreach ($Keys as $aKey)
 		{
 			if (isset($aKey['Email'], $aKey['Key']))
@@ -293,10 +277,10 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 			{
 				foreach ($aContacts as $oContact)
 				{
-					if ($oContact instanceof \Aurora\Modules\Contacts\Classes\Contact &&
+					if ($oContact instanceof Contact &&
 						$oContact->Storage === \Aurora\Modules\Contacts\Enums\StorageType::Personal)
 					{
-						$oContact->{$this->GetName() . '::PgpKey'} = null;
+						$oContact->setExtendedProp($this->GetName() . '::PgpKey', null);
 						\Aurora\Modules\Contacts\Module::Decorator()->UpdateContactObject($oContact);
 					}
 				}
@@ -337,24 +321,15 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 		$mResult = [];
 
-		$aContactsInfo = (new \Aurora\System\EAV\Query())
-			->select(['UUID', 'ETag', 'Storage', 'Auto', $this->GetName() . '::PgpEncryptMessages', $this->GetName() . '::PgpSignMessages'])
-			->whereType(\Aurora\Modules\Contacts\Classes\Contact::class)
-			->where([
-				'$AND' => [
-					$this->GetName() . '::PgpKey' => ['NULL', 'IS NOT'],
-					'UUID' => [$UUIDs, 'IN']
-				]
-			])
-			->exec();
+		$oContacts = Contact::whereIn('UUID', $UUIDs)->whereNotNull('Properties->' . $this->GetName() . '::PgpKey')->get();
 
-		if (isset($aContactsInfo) && count($aContactsInfo) > 0)
+		if (isset($oContacts))
 		{
-			foreach ($aContactsInfo as $oContactInfo)
+			foreach ($oContacts as $oContact)
 			{
-				$mResult[$oContactInfo->UUID]  = [
-					'PgpEncryptMessages' => $oContactInfo->{$this->GetName() . '::PgpEncryptMessages'},
-					'PgpSignMessages' => $oContactInfo->{$this->GetName() . '::PgpSignMessages'}
+				$mResult[$oContact->UUID]  = [
+					'PgpEncryptMessages' => $oContact->{$this->GetName() . '::PgpEncryptMessages'},
+					'PgpSignMessages' => $oContact->{$this->GetName() . '::PgpSignMessages'}
 				];
 			}
 		}
@@ -371,11 +346,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 		$aContactsInfo = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsInfo(
 			\Aurora\Modules\Contacts\Enums\StorageType::Personal,
 			$UserId,
-			[
-				'$AND' => [
-					$this->GetName() . '::PgpKey' => ['NULL', 'IS NOT']
-				]
-			]
+			Contact::whereNotNull('Properties->' . $this->GetName() . '::PgpKey')
 		);
 
 		$aContactUUIDs = [];
