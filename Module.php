@@ -328,8 +328,8 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 			foreach ($oContacts as $oContact)
 			{
 				$mResult[$oContact->UUID]  = [
-					'PgpEncryptMessages' => $oContact->{$this->GetName() . '::PgpEncryptMessages'},
-					'PgpSignMessages' => $oContact->{$this->GetName() . '::PgpSignMessages'}
+					'PgpEncryptMessages' => $oContact->getExtendedProp($this->GetName() . '::PgpEncryptMessages', false),
+					'PgpSignMessages' => $oContact->getExtendedProp($this->GetName() . '::PgpSignMessages', false)
 				];
 			}
 		}
