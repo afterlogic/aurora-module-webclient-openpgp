@@ -208,7 +208,6 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
 		$bResult = false;
 		$aUpdatedContactIds = [];
-
 		if (\MailSo\Base\Validator::SimpleEmailString($Email))
 		{
 			$aContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails(
@@ -216,7 +215,6 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 				\Aurora\Modules\Contacts\Enums\StorageType::Personal,
 				[$Email]
 			);
-
 			if (count($aContacts) === 0)
 			{
 				$mResult = \Aurora\Modules\Contacts\Module::Decorator()->CreateContact(
@@ -237,7 +235,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 				}
 			}
 
-			if (is_array($aContacts) && count($aContacts) > 0)
+			if ($aContacts && count($aContacts) > 0)
 			{
 				foreach ($aContacts as $oContact)
 				{
