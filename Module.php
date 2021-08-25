@@ -290,8 +290,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 				\Aurora\Modules\Contacts\Enums\StorageType::Personal,
 				[$Email]
 			);
-
-			if (is_array($aContacts) && count($aContacts) > 0)
+			if ($aContacts && count($aContacts) > 0)
 			{
 				foreach ($aContacts as $oContact)
 				{
