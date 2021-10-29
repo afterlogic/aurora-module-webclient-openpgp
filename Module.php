@@ -213,7 +213,9 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 			$aContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails(
 				$UserId,
 				\Aurora\Modules\Contacts\Enums\StorageType::Personal,
-				[$Email]
+				[$Email],
+				null,
+				false
 			);
 			if (count($aContacts) === 0)
 			{
@@ -286,7 +288,9 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 			$aContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails(
 				$UserId,
 				\Aurora\Modules\Contacts\Enums\StorageType::Personal,
-				[$Email]
+				[$Email],
+				null,
+				false
 			);
 			if ($aContacts && count($aContacts) > 0)
 			{
