@@ -11,7 +11,7 @@ module.exports = {
 	ServerModuleName: '%ModuleName%',
 	HashModuleName: 'openpgp',
 
-	enableOpenPgp: ko.observable(true),
+	enableOpenPgp: ko.observable(false),
 	rememberPassphrase: ko.observable(false),
 
 	/**
