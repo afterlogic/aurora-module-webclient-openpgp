@@ -160,7 +160,10 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
 
-		$aSettings = array();
+		$aSettings = [
+			'EnableModule' => false,
+			'RememberPassphrase' => false
+		];
 		$oUser = \Aurora\System\Api::getAuthenticatedUser();
 		if ($oUser && $oUser->isNormalOrTenant())
 		{
