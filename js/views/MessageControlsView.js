@@ -73,7 +73,7 @@ CMessageControlsView.prototype.doAfterPopulatingMessage = function (oMessageProp
 		this.sAccountEmail = oMessageProps.sAccountEmail;
 		this.sFromEmail = oMessageProps.sFromEmail;
 
-		if (Settings.enableOpenPgp())
+		if (Settings.enableOpenPgpInMail())
 		{
 			this.isEncryptedMessage(oMessageProps.sText.indexOf('-----BEGIN PGP MESSAGE-----') !== -1);
 			this.visibleVerifyControl(oMessageProps.sText.indexOf('-----BEGIN PGP SIGNED MESSAGE-----') !== -1);

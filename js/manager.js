@@ -173,16 +173,16 @@ module.exports = function (oAppData) {
 					fCallback(oResult);
 				};
 
-				if (Settings.enableOpenPgp())
+				if (Settings.enableOpenPgpInMail())
 				{
 					App.subscribeEvent('ContactsWebclient::beforeCreateContactRequest', createOrUpdateContactResult);
 					App.subscribeEvent('ContactsWebclient::beforeUpdateContactRequest', createOrUpdateContactResult);
 				}
 			},
 
-			isOpenPgpEnabled()
+			getOpenPgpInMailEnabledObservable()
 			{
-				return Settings.enableOpenPgp;
+				return Settings.enableOpenPgpInMail;
 			},
 
 			async getKeyInfo(sValue, fCallback)

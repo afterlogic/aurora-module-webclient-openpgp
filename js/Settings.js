@@ -11,7 +11,7 @@ module.exports = {
 	ServerModuleName: '%ModuleName%',
 	HashModuleName: 'openpgp',
 
-	enableOpenPgp: ko.observable(false),
+	enableOpenPgpInMail: ko.observable(false),
 	rememberPassphrase: ko.observable(false),
 
 	/**
@@ -25,7 +25,7 @@ module.exports = {
 
 		if (!_.isEmpty(oAppDataSection))
 		{
-			this.enableOpenPgp(Types.pBool(oAppDataSection.EnableModule, this.enableOpenPgp()));
+			this.enableOpenPgpInMail(Types.pBool(oAppDataSection.EnableModule, this.enableOpenPgpInMail()));
 			this.rememberPassphrase(Types.pBool(oAppDataSection.RememberPassphrase, this.rememberPassphrase()));
 		}
 	},
@@ -33,10 +33,10 @@ module.exports = {
 	/**
 	 * Updates new settings values after saving on server.
 	 *
-	 * @param {boolean} bEnableOpenPgp
+	 * @param {boolean} bEnableOpenPgpInMail
 	 */
-	update: function (bEnableOpenPgp)
+	update: function (bEnableOpenPgpInMail)
 	{
-		this.enableOpenPgp(bEnableOpenPgp);
+		this.enableOpenPgpInMail(bEnableOpenPgpInMail);
 	}
 };

@@ -30,7 +30,7 @@ function COpenPgpSettingsFormView()
 {
 	CAbstractSettingsFormView.call(this, Settings.ServerModuleName);
 
-	this.enableOpenPgp = ko.observable(Settings.enableOpenPgp());
+	this.enableOpenPgpInMail = ko.observable(Settings.enableOpenPgpInMail());
 	this.rememberPassphrase = Settings.rememberPassphrase;
 	this.isMailAvailable = ModulesManager.isModuleAvailable('Mail');
 
@@ -148,21 +148,21 @@ COpenPgpSettingsFormView.prototype.showArmor = function (oKey)
 COpenPgpSettingsFormView.prototype.getCurrentValues = function ()
 {
 	return [
-		this.enableOpenPgp(),
+		this.enableOpenPgpInMail(),
 		this.rememberPassphrase()
 	];
 };
 
 COpenPgpSettingsFormView.prototype.revertGlobalValues = function ()
 {
-	this.enableOpenPgp(Settings.enableOpenPgp());
+	this.enableOpenPgpInMail(Settings.enableOpenPgpInMail());
 	this.rememberPassphrase(Settings.rememberPassphrase());
 };
 
 COpenPgpSettingsFormView.prototype.getParametersForSave = function ()
 {
 	return {
-		'EnableModule': this.enableOpenPgp(),
+		'EnableModule': this.enableOpenPgpInMail(),
 		'RememberPassphrase': this.rememberPassphrase()
 	};
 };

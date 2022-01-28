@@ -26,7 +26,7 @@ function CComposeButtonsView()
 	this.sId = 'OpenPgp';
 	this.bAllowMobile = true;
 	
-	this.enableOpenPgp = Settings.enableOpenPgp;
+	this.enableOpenPgpInMail = Settings.enableOpenPgpInMail;
 	
 	this.pgpSecured = ko.observable(false);
 	this.pgpEncrypted = ko.observable(false);
@@ -40,14 +40,14 @@ function CComposeButtonsView()
 	}, this); 
 	
 	this.visibleDoPgpButton = ko.computed(function () {
-		return this.enableOpenPgp() && (!this.pgpSecured() || this.pgpEncrypted() && this.fromDrafts());
+		return this.enableOpenPgpInMail() && (!this.pgpSecured() || this.pgpEncrypted() && this.fromDrafts());
 	}, this);
 	this.visibleUndoPgpButton = ko.computed(function () {
-		return this.enableOpenPgp() && this.pgpSecured() && (!this.pgpEncrypted() || !this.fromDrafts());
+		return this.enableOpenPgpInMail() && this.pgpSecured() && (!this.pgpEncrypted() || !this.fromDrafts());
 	}, this);
 	
 	this.isEnableOpenPgpCommand = ko.computed(function () {
-		return this.enableOpenPgp() && !this.pgpSecured();
+		return this.enableOpenPgpInMail() && !this.pgpSecured();
 	}, this);
 	this.openPgpCommand = Utils.createCommand(this, this.confirmOpenPgp, this.isEnableOpenPgpCommand);
 	
@@ -142,7 +142,7 @@ CComposeButtonsView.prototype.doAfterPopulatingMessage = function (oMessageProps
  */
 CComposeButtonsView.prototype.doBeforeSend = function (fContinueSending)
 {
-	if (this.enableOpenPgp() && Settings.AutosignOutgoingEmails && !this.pgpSecured())
+	if (this.enableOpenPgpInMail() && Settings.AutosignOutgoingEmails && !this.pgpSecured())
 	{
 		this.openPgpPopup(fContinueSending);
 		return true;
