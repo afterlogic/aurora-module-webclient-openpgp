@@ -123,6 +123,9 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 					$oContact->setExtendedProp($this->GetName() . '::PgpSignMessages', $aArgs['Contact']['PgpSignMessages']);
 				}
 				\Aurora\Modules\Contacts\Module::Decorator()->UpdateContactObject($oContact);
+				if (is_array($mResult) && isset($mResult['ETag'])) {
+					$mResult['ETag'] = $oContact->ETag;
+				}
 			}
 		}
 	}
