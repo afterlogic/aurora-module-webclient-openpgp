@@ -1,20 +1,20 @@
 {
-  "Disabled": [
-    false,
-    "bool"
-  ],
-  "Disabled_Description": [
-    "",
-    "string"
-  ],
-  "AvailableFor": [
-    [
-      "MailWebclient"
-    ],
-    "array"
-  ],
-  "AvailableFor_Description": [
-    "",
-    "string"
-  ]
+	"Disabled": [
+		false,
+		"bool"
+	],
+	"Disabled_Description": [
+		"",
+		"string"
+	],
+	"AvailableFor": [
+		[
+			"MailWebclient"
+		],
+		"array"
+	],
+	"AvailableFor_Description": [
+		"",
+		"string"
+	]
 }
