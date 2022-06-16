@@ -7,6 +7,7 @@
 
 namespace Aurora\Modules\OpenPgpWebclient;
 
+use Aurora\Modules\Contacts\Enums\StorageType;
 use Aurora\Modules\Contacts\Models\Contact;
 
 /**
@@ -113,7 +114,9 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 			$oContact = \Aurora\Modules\Contacts\Module::Decorator()->GetContact($mResult['UUID'], $aArgs['UserId']);
 			if ($oContact instanceof Contact)
 			{
-				$oContact->setExtendedProp($this->GetName() . '::PgpKey', $sPublicPgpKey);
+				if (isset($sPublicPgpKey)) {
+					$oContact->setExtendedProp($this->GetName() . '::PgpKey', $sPublicPgpKey);
+				}
 				if (isset($aArgs['Contact']['PgpEncryptMessages']) && is_bool($aArgs['Contact']['PgpEncryptMessages']))
 				{
 					$oContact->setExtendedProp($this->GetName() . '::PgpEncryptMessages', $aArgs['Contact']['PgpEncryptMessages']);
@@ -331,6 +334,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 				foreach ($aContacts as $oContact)
 				{
 					$aResult[] = [
+						'UUID' => $oContact->UUID,
 						'Email' => $oContact->ViewEmail,
 						'PublicPgpKey' => $oContact->{$this->GetName() . '::PgpKey'}
 					];
@@ -352,10 +356,17 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 		{
 			foreach ($oContacts as $oContact)
 			{
-				$mResult[$oContact->UUID]  = [
-					'PgpEncryptMessages' => $oContact->getExtendedProp($this->GetName() . '::PgpEncryptMessages', false),
-					'PgpSignMessages' => $oContact->getExtendedProp($this->GetName() . '::PgpSignMessages', false)
-				];
+				if ($oContact->Storage !== StorageType::Team) {
+					$mResult[$oContact->UUID]  = [
+						'PgpEncryptMessages' => $oContact->getExtendedProp($this->GetName() . '::PgpEncryptMessages', false),
+						'PgpSignMessages' => $oContact->getExtendedProp($this->GetName() . '::PgpSignMessages', false)
+					];
+				} else {
+					$mResult[$oContact->UUID]  = [
+						'PgpEncryptMessages' => $oContact->getExtendedProp($this->GetName() . '::PgpEncryptMessages_' . $UserId, false),
+						'PgpSignMessages' => $oContact->getExtendedProp($this->GetName() . '::PgpSignMessages_' . $UserId, false)
+					];					
+				}
 			}
 		}
 
@@ -385,6 +396,26 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
 
 		return $aResult;
+	}
+
+	public function UpdateContactPublicKey($UserId, $UUID, $PublicPgpKey, $PgpEncryptMessages = false, $PgpSignMessages = false) {
+		$mResult = false;
+		$oContact = \Aurora\Modules\Contacts\Module::Decorator()->GetContact($UUID, $UserId);
+		if ($oContact instanceof Contact) {
+			$oContact->setExtendedProp($this->GetName() . '::PgpKey', $PublicPgpKey);
+
+			if ($oContact->Storage !== StorageType::Team) {
+				$oContact->setExtendedProp($this->GetName() . '::PgpEncryptMessages', $PgpEncryptMessages);
+				$oContact->setExtendedProp($this->GetName() . '::PgpSignMessages', $PgpSignMessages);
+			} else {
+				$oContact->setExtendedProp($this->GetName() . '::PgpEncryptMessages_' . $UserId, $PgpEncryptMessages);
+				$oContact->setExtendedProp($this->GetName() . '::PgpSignMessages_' . $UserId, $PgpSignMessages);				
+			}
+
+			$mResult = \Aurora\Modules\Contacts\Module::Decorator()->UpdateContactObject($oContact);
+		}
+
+		return $mResult;
 	}
 	/***** public functions might be called with web API *****/
 }

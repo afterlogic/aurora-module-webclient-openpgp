@@ -173,11 +173,11 @@ module.exports = function (oAppData) {
 					fCallback(oResult);
 				};
 
-				if (Settings.enableOpenPgpInMail())
-				{
+				// if (Settings.enableOpenPgpInMail())
+				// {
 					App.subscribeEvent('ContactsWebclient::beforeCreateContactRequest', createOrUpdateContactResult);
 					App.subscribeEvent('ContactsWebclient::beforeUpdateContactRequest', createOrUpdateContactResult);
-				}
+				// }
 			},
 
 			getOpenPgpInMailEnabledObservable()
