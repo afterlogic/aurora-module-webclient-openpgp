@@ -9,6 +9,8 @@ namespace Aurora\Modules\OpenPgpWebclient;
 
 use Aurora\Modules\Contacts\Enums\StorageType;
 use Aurora\Modules\Contacts\Models\Contact;
+use Aurora\System\Api;
+use Aurora\System\Enums\UserRole;
 
 /**
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
@@ -345,6 +347,21 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 		return $aResult;
 	}
 
+	protected function getContactPgpData($oContact, $iUserId)
+	{
+		if ($oContact->Storage !== StorageType::Team) {
+			return [
+				'PgpEncryptMessages' => $oContact->getExtendedProp($this->GetName() . '::PgpEncryptMessages', false),
+				'PgpSignMessages' => $oContact->getExtendedProp($this->GetName() . '::PgpSignMessages', false)
+			];
+		} else {
+			return [
+				'PgpEncryptMessages' => $oContact->getExtendedProp($this->GetName() . '::PgpEncryptMessages_' . $iUserId, false),
+				'PgpSignMessages' => $oContact->getExtendedProp($this->GetName() . '::PgpSignMessages_' . $iUserId, false)
+			];					
+		}
+	}
+
 	public function GetContactsWithPublicKeys($UserId, $UUIDs)
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
@@ -352,21 +369,9 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
 		$oContacts = Contact::whereIn('UUID', $UUIDs)->whereNotNull('Properties->' . $this->GetName() . '::PgpKey')->get();
 
-		if (isset($oContacts))
-		{
-			foreach ($oContacts as $oContact)
-			{
-				if ($oContact->Storage !== StorageType::Team) {
-					$mResult[$oContact->UUID]  = [
-						'PgpEncryptMessages' => $oContact->getExtendedProp($this->GetName() . '::PgpEncryptMessages', false),
-						'PgpSignMessages' => $oContact->getExtendedProp($this->GetName() . '::PgpSignMessages', false)
-					];
-				} else {
-					$mResult[$oContact->UUID]  = [
-						'PgpEncryptMessages' => $oContact->getExtendedProp($this->GetName() . '::PgpEncryptMessages_' . $UserId, false),
-						'PgpSignMessages' => $oContact->getExtendedProp($this->GetName() . '::PgpSignMessages_' . $UserId, false)
-					];					
-				}
+		if (isset($oContacts)) {
+			foreach ($oContacts as $oContact) {
+				$mResult[$oContact->UUID]  = $this->getContactPgpData($oContact, $UserId);
 			}
 		}
 
@@ -398,9 +403,10 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 		return $aResult;
 	}
 
-	public function UpdateContactPublicKey($UserId, $UUID, $PublicPgpKey, $PgpEncryptMessages = false, $PgpSignMessages = false) {
+	protected function updatePublicKey($UserId, $oContact, $PublicPgpKey, $PgpEncryptMessages = false, $PgpSignMessages = false) 
+	{
 		$mResult = false;
-		$oContact = \Aurora\Modules\Contacts\Module::Decorator()->GetContact($UUID, $UserId);
+
 		if ($oContact instanceof Contact) {
 			$oContact->setExtendedProp($this->GetName() . '::PgpKey', $PublicPgpKey);
 
@@ -414,8 +420,76 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
 			$mResult = \Aurora\Modules\Contacts\Module::Decorator()->UpdateContactObject($oContact);
 		}
+		return $mResult;
+	}
+
+	public function UpdateContactPublicKey($UserId, $UUID, $PublicPgpKey, $PgpEncryptMessages = false, $PgpSignMessages = false) 
+	{
+		$oContact = \Aurora\Modules\Contacts\Module::Decorator()->GetContact($UUID, $UserId);
+		$mResult = $this->updatePublicKey($UserId, $oContact, $PublicPgpKey, $PgpEncryptMessages, $PgpSignMessages);
 
 		return $mResult;
 	}
+
+	protected function getTeamContactByUser($oUser)
+	{
+		$mResult = false;
+
+		$aContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails(
+			$oUser->Id,
+			\Aurora\Modules\Contacts\Enums\StorageType::Team,
+			[$oUser->PublicId],
+			null,
+			false
+		);
+		if ($aContacts && count($aContacts) > 0) {
+			$oContact = $aContacts[0];
+			if ($oContact instanceof Contact) {
+				$mResult = $oContact;
+			}
+		}
+
+		return $mResult;
+	}
+
+	public function UpdateMyContactPublicKey($UserId, $PublicPgpKey)
+	{
+		$mResult = false;
+
+		Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+		$oUser = Api::getAuthenticatedUser();
+		if ($oUser) {
+			if ($oUser->Id === $UserId) {
+				$oContact = $this->getTeamContactByUser($oUser);
+				if ($oContact instanceof Contact) {
+					$mResult = $this->updatePublicKey($UserId, $oContact, $PublicPgpKey);
+				}
+			}
+		}
+
+		return $mResult;
+	}
+
+	public function GetMyContactPublicKey($UserId)
+	{
+		$mResult = false;
+
+		Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+
+		$oUser = Api::getAuthenticatedUser();
+		if ($oUser) {
+			if ($oUser->Id === $UserId) {
+				$oContact = $this->getTeamContactByUser($oUser);
+				if ($oContact instanceof Contact) {
+					$mResult = $this->getContactPgpData($oContact, $UserId);
+				}
+			}
+		}
+
+		return $mResult;
+	}
+
+
+
 	/***** public functions might be called with web API *****/
 }
