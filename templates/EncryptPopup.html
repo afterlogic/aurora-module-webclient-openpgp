@@ -7,18 +7,18 @@
 		<div class="fields">
 			<div class="row">
 				<div style="white-space: nowrap;">
-					<label data-bind="css: {'checked': sign}" class="custom_checkbox checked">
+					<label data-bind="css: {'checked': needToSign}" class="custom_checkbox checked">
 						<span class="icon"></span>
-						<input type="checkbox" data-bind="checked: sign" id="openpgp-sign" />
+						<input type="checkbox" data-bind="checked: needToSign" id="openpgp-sign" />
 					</label>
 					<label data-bind="i18n: {'key': '%MODULENAME%/LABEL_SIGN'}" for="openpgp-sign"></label>
 				</div>
 			</div>
 			<div class="row">
 				<div>
-					<label data-bind="css: {'checked': encrypt}" class="custom_checkbox checked">
+					<label data-bind="css: {'checked': needToEncrypt}" class="custom_checkbox checked">
 						<span class="icon"></span>
-						<input type="checkbox" data-bind="checked: encrypt" id="openpgp-encrypt" />
+						<input type="checkbox" data-bind="checked: needToEncrypt" id="openpgp-encrypt" />
 					</label>
 					<label data-bind="i18n: {'key': '%MODULENAME%/LABEL_ENCRYPT'}" for="openpgp-encrypt"></label>
 				</div>

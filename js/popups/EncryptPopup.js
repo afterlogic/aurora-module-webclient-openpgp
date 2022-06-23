@@ -2,19 +2,18 @@
 
 var
 	_ = require('underscore'),
-	$ = require('jquery'),
 	ko = require('knockout'),
-	
+
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
 	Utils = require('%PathToCoreWebclientModule%/js/utils/Common.js'),
-	
-	App = require('%PathToCoreWebclientModule%/js/App.js'),
+
+	Ajax = require('%PathToCoreWebclientModule%/js/Ajax.js'),
 	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
-	
+
 	CAbstractPopup = require('%PathToCoreWebclientModule%/js/popups/CAbstractPopup.js'),
-	
+
 	ErrorsUtils = require('modules/%ModuleName%/js/utils/Errors.js'),
-	
+
 	Enums = require('modules/%ModuleName%/js/Enums.js'),
 	OpenPgp = require('modules/%ModuleName%/js/OpenPgp.js')
 ;
@@ -25,33 +24,28 @@ var
 function CEncryptPopup()
 {
 	CAbstractPopup.call(this);
-	
-	this.bMobile = App.isMobile();
-	
+
 	this.data = ko.observable('');
 	this.fromEmail = ko.observable('');
 	this.emails = ko.observableArray([]);
-	this.okCallback = null;
-	this.cancelCallback = null;
-	this.sign = ko.observable(true);
-	this.encrypt = ko.observable(true);
+	this.publicKeysArmorsFromContacts = [];
+	this.successEncryptCallback = () => {};
+	this.needToSign = ko.observable(true);
+	this.needToEncrypt = ko.observable(true);
 	this.signEncryptButtonText = ko.computed(function () {
-		var sText = TextUtils.i18n('%MODULENAME%/ACTION_SIGN_ENCRYPT');
-		if (this.sign() && !this.encrypt())
-		{
-			sText = TextUtils.i18n('%MODULENAME%/ACTION_SIGN');
+		let text = TextUtils.i18n('%MODULENAME%/ACTION_SIGN_ENCRYPT');
+		if (this.needToSign() && !this.needToEncrypt()) {
+			text = TextUtils.i18n('%MODULENAME%/ACTION_SIGN');
 		}
-		if (!this.sign() && this.encrypt())
-		{
-			sText = TextUtils.i18n('%MODULENAME%/ACTION_ENCRYPT');
+		if (!this.needToSign() && this.needToEncrypt()) {
+			text = TextUtils.i18n('%MODULENAME%/ACTION_ENCRYPT');
 		}
-		return sText;
+		return text;
 	}, this);
 	this.isEnableSignEncrypt = ko.computed(function () {
-		return this.sign() || this.encrypt();
+		return this.needToSign() || this.needToEncrypt();
 	}, this);
 	this.signEncryptCommand = Utils.createCommand(this, this.executeSignEncrypt, this.isEnableSignEncrypt);
-	this.signAndSend = ko.observable(false);
 }
 
 _.extendOwn(CEncryptPopup.prototype, CAbstractPopup.prototype);
@@ -59,93 +53,86 @@ _.extendOwn(CEncryptPopup.prototype, CAbstractPopup.prototype);
 CEncryptPopup.prototype.PopupTemplate = '%ModuleName%_EncryptPopup';
 
 /**
- * @param {string} sData
- * @param {string} sFromEmail
- * @param {Array} aEmails
- * @param {boolean} bSignAndSend
- * @param {Function} fOkCallback
- * @param {Function} fCancelCallback
+ * @param {string} dataToEncrypt
+ * @param {string} fromEmail
+ * @param {array} resipientsInfo
+ * @param {function} successEncryptCallback
  */
-CEncryptPopup.prototype.onOpen = function (sData, sFromEmail, aEmails, bSignAndSend, fOkCallback, fCancelCallback)
+CEncryptPopup.prototype.onOpen = function (dataToEncrypt, fromEmail, resipientsInfo, successEncryptCallback)
 {
-	this.data(sData);
-	this.fromEmail(sFromEmail);
-	this.emails(aEmails);
-	this.okCallback = fOkCallback;
-	this.cancelCallback = fCancelCallback;
-	this.sign(true);
-	this.encrypt(!bSignAndSend);
-	this.signAndSend(bSignAndSend);
+	this.data(dataToEncrypt);
+	this.fromEmail(fromEmail);
+	this.emails(resipientsInfo.map(info => info.email));
+	this.publicKeysArmorsFromContacts = [];
+	this.successEncryptCallback = _.isFunction(successEncryptCallback) ? successEncryptCallback : () => {};
+	this.needToSign(true);
+	this.needToEncrypt(true);
+
+	const parameters = {
+		'ContactUUIDs': resipientsInfo.map(info => info.uuid)
+	};
+	Ajax.send('OpenPgpWebclient', 'GetPublicKeysByCountactUUIDs', parameters, response => {
+		if (Array.isArray(response.Result)) {
+			this.publicKeysArmorsFromContacts = response.Result;
+		}
+	});
 };
 
 CEncryptPopup.prototype.executeSignEncrypt = function ()
 {
-	var
-		sData = this.data(),
-		sPrivateEmail = this.sign() ? this.fromEmail() : '',
-		aPrincipalsEmail = this.emails(),
-		sOkReport = '',
-		sPgpAction = '',
-		fOkHandler = _.bind(function (oRes) {
+	const
+		dataToEncrypt = this.data(),
+		privateEmail = this.needToSign() ? this.fromEmail() : '',
+		successHandler = encryptResult => {
+			Screens.showReport(okReport);
 			this.closePopup();
-			if (this.okCallback)
-			{
-				if (!this.signAndSend())
-				{
-					Screens.showReport(sOkReport);
-				}
-				this.okCallback(oRes.result, this.encrypt());
-			}
-		}, this),
-		fErrorHandler = function (oRes) {
-			if (!oRes || !oRes.userCanceled)
-			{
-				ErrorsUtils.showPgpErrorByCode(oRes, sPgpAction);
+			this.successEncryptCallback(encryptResult.result, this.needToEncrypt());
+		},
+		errorHandler = encryptResult => {
+			if (!encryptResult || !encryptResult.userCanceled) {
+				ErrorsUtils.showPgpErrorByCode(encryptResult, pgpAction);
 			}
 		}
 	;
-	
-	if (this.encrypt())
-	{
-		if (aPrincipalsEmail.length === 0)
-		{
+
+	let
+		okReport = '',
+		pgpAction = ''
+	;
+	if (this.needToEncrypt()) {
+		if (this.emails().length === 0) {
 			Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_TO_ENCRYPT_SPECIFY_RECIPIENTS'));
-		}
-		else
-		{
-			var
-				aUserEmail = [this.fromEmail()],
-				aEmailForEncrypt = OpenPgp.findKeysByEmails(aUserEmail, true).length > 0 ? _.union(aPrincipalsEmail, aUserEmail) : aPrincipalsEmail
+		} else {
+			const
+				userEmails = [this.fromEmail()],
+				userPublicKeys = OpenPgp.findKeysByEmails(userEmails, true),
+				principalsEmails = userPublicKeys.length > 0
+					? _.union(this.emails(), userEmails)
+					: this.emails()
 			;
-			if (this.sign())
-			{
-				sPgpAction = Enums.PgpAction.EncryptSign;
-				sOkReport = TextUtils.i18n('%MODULENAME%/REPORT_MESSAGE_SIGNED_ENCRYPTED_SUCCSESSFULLY');
-				OpenPgp.signAndEncrypt(sData, sPrivateEmail, aEmailForEncrypt, '', fOkHandler, fErrorHandler);
-			}
-			else
-			{
-				sPgpAction = Enums.PgpAction.Encrypt;
-				sOkReport = TextUtils.i18n('%MODULENAME%/REPORT_MESSAGE_ENCRYPTED_SUCCSESSFULLY');
-				OpenPgp.encrypt(sData, aEmailForEncrypt, fOkHandler, fErrorHandler);
+			if (this.needToSign()) {
+				pgpAction = Enums.PgpAction.EncryptSign;
+				okReport = TextUtils.i18n('%MODULENAME%/REPORT_MESSAGE_SIGNED_ENCRYPTED_SUCCSESSFULLY');
+				OpenPgp.signAndEncrypt(dataToEncrypt, privateEmail, principalsEmails, '', successHandler,
+					errorHandler, this.publicKeysArmorsFromContacts
+				);
+			} else {
+				pgpAction = Enums.PgpAction.Encrypt;
+				okReport = TextUtils.i18n('%MODULENAME%/REPORT_MESSAGE_ENCRYPTED_SUCCSESSFULLY');
+				OpenPgp.encrypt(dataToEncrypt, principalsEmails, successHandler, errorHandler,
+					this.publicKeysArmorsFromContacts
+				);
 			}
 		}
-	}
-	else if (this.sign())
-	{
-		sPgpAction = Enums.PgpAction.Sign;
-		sOkReport = TextUtils.i18n('%MODULENAME%/REPORT_MESSAGE_SIGNED_SUCCSESSFULLY');
-		OpenPgp.sign(sData, sPrivateEmail, fOkHandler, fErrorHandler, '');
+	} else if (this.needToSign()) {
+		pgpAction = Enums.PgpAction.Sign;
+		okReport = TextUtils.i18n('%MODULENAME%/REPORT_MESSAGE_SIGNED_SUCCSESSFULLY');
+		OpenPgp.sign(dataToEncrypt, privateEmail, successHandler, errorHandler, '');
 	}
 };
 
 CEncryptPopup.prototype.cancelPopup = function ()
 {
-	if (this.cancelCallback)
-	{
-		this.cancelCallback();
-	}
-	
 	this.closePopup();
 };
 

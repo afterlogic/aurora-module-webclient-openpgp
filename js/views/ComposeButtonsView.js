@@ -65,6 +65,7 @@ CComposeButtonsView.prototype.ViewTemplate = App.isMobile() ? '%ModuleName%_Comp
  * @param {Function} oCompose.getPlainText Returns plain text from html editor. If html mode is switched on html text will be converted to plain and returned.
  * @param {Function} oCompose.getFromEmail Returns message sender email.
  * @param {Function} oCompose.getRecipientEmails Returns array of message recipients.
+ * @param {Function} oCompose.getRecipientsInfo Returns array of message recipients info.
  * @param {Function} oCompose.saveSilently Saves message silently (without buttons disabling and any info messages).
  * @param {Function} oCompose.setPlainTextMode Sets plain text mode switched on.
  * @param {Function} oCompose.setPlainText Sets plain text to html editor.
@@ -136,21 +137,6 @@ CComposeButtonsView.prototype.doAfterPopulatingMessage = function (oMessageProps
 };
 
 /**
- * Executes before message sending. May cancel the sending and continue it later if it's necessary.
- * @param {Function} fContinueSending Handler for continue message sending if it's necessary.
- * @returns {Boolean} If **true** message sending will be canceled.
- */
-CComposeButtonsView.prototype.doBeforeSend = function (fContinueSending)
-{
-	if (this.enableOpenPgpInMail() && Settings.AutosignOutgoingEmails && !this.pgpSecured())
-	{
-		this.openPgpPopup(fContinueSending);
-		return true;
-	}
-	return false;
-};
-
-/**
  * Executes before message saving. May cancel the saving and continue it later if it's necessary.
  * @param {Function} fContinueSaving Handler for continue message saving if it's necessary.
  * @returns {Boolean} If **true** message saving will be canceled.
@@ -200,39 +186,21 @@ CComposeButtonsView.prototype.confirmOpenPgp = function ()
 	}
 };
 
-/**
- * @param {function} fContinueSending
- */
-CComposeButtonsView.prototype.openPgpPopup = function (fContinueSending)
+CComposeButtonsView.prototype.openPgpPopup = function ()
 {
-	if (this.oCompose)
-	{
-		var
-			bContinueSending = $.isFunction(fContinueSending),
-			fOkCallback = _.bind(function (sSignedEncryptedText, bEncrypted) {
-//				if (!bContinueSending)
-//				{
-//					this.oCompose.saveSilently();
-//				}
-				
-				if (this.oCompose.isHtml())
-				{
-					this.oCompose.setPlainTextMode();
-					this.bComposeModeChanged = true;
-				}
-				this.oCompose.setPlainText(sSignedEncryptedText);
-				
-				if (bContinueSending)
-				{
-					fContinueSending();
-				}
-				this.pgpSecured(true);
-				this.pgpEncrypted(bEncrypted);
-			}, this),
-			fCancelCallback = bContinueSending ? fContinueSending : function () {}
-		;
+	if (this.oCompose) {
+		const successCallback = (signedEncryptedText, isEncrypted) => {
+			if (this.oCompose.isHtml()) {
+				this.oCompose.setPlainTextMode();
+				this.bComposeModeChanged = true;
+			}
+			this.oCompose.setPlainText(signedEncryptedText);
+			this.pgpSecured(true);
+			this.pgpEncrypted(isEncrypted);
+		};
 
-		Popups.showPopup(EncryptPopup, [this.oCompose.getPlainText(), this.oCompose.getFromEmail(), this.oCompose.getRecipientEmails(), bContinueSending, fOkCallback, fCancelCallback]);
+		Popups.showPopup(EncryptPopup, [this.oCompose.getPlainText(), this.oCompose.getFromEmail(),
+			this.oCompose.getRecipientsInfo(), successCallback]);
 	}
 };
 

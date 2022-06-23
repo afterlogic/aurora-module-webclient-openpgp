@@ -242,12 +242,14 @@ module.exports = function (oAppData) {
 						let OpenPgp = require('modules/%ModuleName%/js/OpenPgp.js');
 						const aPublicKeysEmails = OpenPgp.getPublicKeys().map(oKey => oKey.getEmail());
 						oItems.forEach(oItem => {
-							oItem.hasKey = aPublicKeysEmails.includes(oItem.email)
+							if (!oItem.hasKey) {
+								oItem.hasKey = aPublicKeysEmails.includes(oItem.email);
+							}
 						});
 						/*-----------------------------------------------*/
 						fResponse(oItems);
 					};
-					fSuggestionsAutocompleteCallback(oRequest, fResponseWrapper)
+					fSuggestionsAutocompleteCallback(oRequest, fResponseWrapper);
 				};
 			},
 			

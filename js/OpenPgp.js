@@ -22,6 +22,21 @@ let
 	Ajax = require('%PathToCoreWebclientModule%/js/Ajax.js')
 ;
 
+const getKeysFromArmors = async function (armorsData) {
+	const openPgpKeys = [];
+	for (let key of armorsData) {
+		const nativeKey = await openpgp.key.readArmored(key.PublicPgpKey);
+		if (nativeKey && !nativeKey.err && nativeKey.keys && nativeKey.keys[0]) {
+			const openPgpKey = new COpenPgpKey(nativeKey.keys[0]);
+			if (openPgpKey) {
+				openPgpKey.isExternal = true;
+				openPgpKeys.push(openPgpKey);
+			}
+		}
+	}
+	return openPgpKeys;
+};
+
 /**
  * @constructor
  */
@@ -146,33 +161,13 @@ COpenPgp.prototype.getPublicKeysFromContacts = async function ()
 			'GetPublicKeysFromContacts',
 			{},
 			async oResponse => {
-				let aKeys = [];
-				let	result = oResponse && oResponse.Result;
-				if (!result.length)
-				{
-					resolve(aKeys);
-					return false;
+				let result = oResponse && oResponse.Result;
+				if (Array.isArray(result)) {
+					const openPgpKeys = await getKeysFromArmors(result);
+					resolve(openPgpKeys);
+				} else {
+					resolve([]);
 				}
-				for (let key of result)
-				{
-					let oNativeKey = await openpgp.key.readArmored(key.PublicPgpKey);
-					let oKey = null;
-					if (
-						oNativeKey
-						&& !oNativeKey.err
-						&& oNativeKey.keys
-						&& oNativeKey.keys[0]
-					)
-					{
-						oKey = new COpenPgpKey(oNativeKey.keys[0]);
-						if (oKey)
-						{
-							oKey.isExternal = true;
-							aKeys.push(oKey);
-						}
-					}
-				}
-				resolve(aKeys);
 			},
 			this
 		);
@@ -839,180 +834,167 @@ COpenPgp.prototype.verify = async function (sData, sFromEmail, fOkHandler, fErro
 };
 
 /**
- * @param {string} sData
- * @param {Array} aPrincipalsEmail
- * @param {Function} fOkHandler
- * @param {Function} fErrorHandler
+ * @param {string} dataToEncrypt
+ * @param {array} principalsEmails
+ * @param {function} successCallback
+ * @param {function} errorCallback
  * @return {string}
  */
-COpenPgp.prototype.encrypt = async function (sData, aPrincipalsEmail, fOkHandler, fErrorHandler)
+COpenPgp.prototype.encrypt = async function (dataToEncrypt, principalsEmails, successCallback,
+		errorCallback, publicKeysArmorsFromContacts = [])
 {
-	let
-		oResult = new COpenPgpResult(),
-		aPublicKeys = this.findKeysByEmails(aPrincipalsEmail, true, oResult)
+	const
+		findKeysResult = new COpenPgpResult(),
+		publicKeysFromContacts = await getKeysFromArmors(publicKeysArmorsFromContacts),
+		publicKeysFromContactsEmails = publicKeysArmorsFromContacts.map(publicKey => publicKey.Email),
+		notFoundPrincipalsEmails = principalsEmails.filter(email => !publicKeysFromContactsEmails.includes(email)),
+		publicKeysFromLocalStorage = this.findKeysByEmails(notFoundPrincipalsEmails, true, findKeysResult),
+		allPublicKeys = publicKeysFromContacts.concat(publicKeysFromLocalStorage)
 	;
 
-	if (!oResult.hasErrors())
-	{
-		try
-		{
-			const oEncryptionResult = await this.encryptData(sData, aPublicKeys);
-			if (oEncryptionResult.result)
-			{
-				let { data, password } = oEncryptionResult.result;
-				oEncryptionResult.result = data;
-				if (_.isFunction(fOkHandler))
-				{
-					fOkHandler(oEncryptionResult);
-				}
-			}
-			else if (_.isFunction(fErrorHandler))
-			{
-				fErrorHandler(oEncryptionResult);
-			}
+	if (findKeysResult.hasErrors()) {
+		if (_.isFunction(errorCallback)) {
+			errorCallback(findKeysResult);
 		}
-		catch (e)
-		{
-			oResult.addExceptionMessage(e, Enums.OpenPgpErrors.EncryptError);
-			if (_.isFunction(fErrorHandler))
-			{
-				fErrorHandler(oResult);
-			}
-		}
+		return;
 	}
-	else if (_.isFunction(fErrorHandler))
-	{
-		fErrorHandler(oResult);
+
+	try {
+		const oEncryptionResult = await this.encryptData(dataToEncrypt, allPublicKeys);
+		if (oEncryptionResult.result) {
+			const { data, password } = oEncryptionResult.result;
+			oEncryptionResult.result = data;
+			if (_.isFunction(successCallback)) {
+				successCallback(oEncryptionResult);
+			}
+		} else if (_.isFunction(errorCallback)) {
+			errorCallback(oEncryptionResult);
+		}
+	} catch (e) {
+		findKeysResult.addExceptionMessage(e, Enums.OpenPgpErrors.EncryptError);
+		if (_.isFunction(errorCallback)) {
+			errorCallback(findKeysResult);
+		}
 	}
 };
 
 /**
- * @param {string} sData
- * @param {string} sFromEmail
- * @param {string} sPassphrase
- * @param {Function} fOkHandler
- * @param {Function} fErrorHandler
+ * @param {string} dataToSign
+ * @param {string} fromEmail
+ * @param {function} successCallback
+ * @param {function} errorCallback
+ * @param {string} passphrase
  * @return {string}
  */
-COpenPgp.prototype.sign = async function (sData, sFromEmail, fOkHandler, fErrorHandler, sPassphrase = '')
+COpenPgp.prototype.sign = async function (dataToSign, fromEmail, successCallback, errorCallback,
+		passphrase = '')
 {
-	let
-		oResult = new COpenPgpResult(),
-		oPrivateKey = null,
-		oPrivateKeyClone = null,
-		aPrivateKeys = this.findKeysByEmails([sFromEmail], false, oResult)
+	const
+		findKeysResult = new COpenPgpResult(),
+		aPrivateKeys = this.findKeysByEmails([fromEmail], false, findKeysResult)
 	;
 
-	if (!oResult.hasErrors())
-	{
-		oPrivateKey = this.convertToNativeKeys(aPrivateKeys)[0];
-		oPrivateKeyClone = await this.cloneKey(oPrivateKey);
-
-		if (sPassphrase === '')
-		{
-			sPassphrase = await this.askForKeyPassword(aPrivateKeys[0].getUser());
-			if (sPassphrase === false)
-			{
-				// returning userCanceled status so that error message won't be shown
-				oResult.userCanceled = true;
-				return oResult;
-			}
-			else
-			{
-				// returning passphrase so that it won't be asked again until current action popup is closed
-				oResult.passphrase = sPassphrase;
-			}
+	if (findKeysResult.hasErrors()) {
+		if (_.isFunction(errorCallback)) {
+			errorCallback(findKeysResult);
 		}
+		return;
+	}
 
-		await this.decryptKeyHelper(oResult, oPrivateKeyClone, sPassphrase, sFromEmail);
+	const
+		privateKey = this.convertToNativeKeys(aPrivateKeys)[0],
+		privateKeyClone = await this.cloneKey(privateKey)
+	;
 
-		if (oPrivateKeyClone && !oResult.hasErrors())
-		{
-			let oOptions = {
-				message: openpgp.cleartext.fromText(sData),
-				privateKeys: oPrivateKeyClone
-			};
-
-			openpgp.sign(oOptions).then(function(oPgpResult) {
-				oResult.result = oPgpResult.data;
-				if (_.isFunction(fOkHandler))
-				{
-					fOkHandler(oResult);
-				}
-			}, function (e) {
-				oResult.addExceptionMessage(e, Enums.OpenPgpErrors.SignError, sFromEmail);
-				if (_.isFunction(fErrorHandler))
-				{
-					fErrorHandler(oResult);
-				}
-			});
-		}
-		else if (_.isFunction(fErrorHandler))
-		{
-			fErrorHandler(oResult);
+	if (passphrase === '') {
+		passphrase = await this.askForKeyPassword(aPrivateKeys[0].getUser());
+		if (passphrase === false) {
+			// returning userCanceled status so that error message won't be shown
+			findKeysResult.userCanceled = true;
+			return findKeysResult;
+		} else {
+			// returning passphrase so that it won't be asked again until current action popup is closed
+			findKeysResult.passphrase = passphrase;
 		}
 	}
-	else if (_.isFunction(fErrorHandler))
-	{
-		fErrorHandler(oResult);
+
+	await this.decryptKeyHelper(findKeysResult, privateKeyClone, passphrase, fromEmail);
+
+	if (privateKeyClone && !findKeysResult.hasErrors()) {
+		let oOptions = {
+			message: openpgp.cleartext.fromText(dataToSign),
+			privateKeys: privateKeyClone
+		};
+		openpgp.sign(oOptions).then(
+			signResult => {
+				findKeysResult.result = signResult.data;
+				if (_.isFunction(successCallback)) {
+					successCallback(findKeysResult);
+				}
+			},
+			error => {
+				findKeysResult.addExceptionMessage(error, Enums.OpenPgpErrors.SignError, fromEmail);
+				if (_.isFunction(errorCallback)) {
+					errorCallback(findKeysResult);
+				}
+			}
+		);
+	} else if (_.isFunction(errorCallback)) {
+		errorCallback(findKeysResult);
 	}
 };
 
 /**
- * @param {string} sData
- * @param {string} sFromEmail
- * @param {Array} aPrincipalsEmail
- * @param {string} sPassphrase
- * @param {Function} fOkHandler
- * @param {Function} fErrorHandler
+ * @param {string} dataToEncrypt
+ * @param {string} fromEmail
+ * @param {Array} principalsEmail
+ * @param {string} passphrase
+ * @param {Function} successCallback
+ * @param {Function} errorHandler
+ * @param {Array} publicKeysArmorsFromContacts
  * @return {string}
  */
-COpenPgp.prototype.signAndEncrypt = async function (sData, sFromEmail, aPrincipalsEmail, sPassphrase, fOkHandler, fErrorHandler)
+COpenPgp.prototype.signAndEncrypt = async function (dataToEncrypt, fromEmail, principalsEmail, passphrase,
+		successCallback, errorHandler, publicKeysArmorsFromContacts = [])
 {
-	let
-		oPrivateKey = null,
-		oPrivateKeyClone = null,
-		oResult = new COpenPgpResult(),
-		aPrivateKeys = this.findKeysByEmails([sFromEmail], false, oResult),
-		aPublicKeys = this.findKeysByEmails(aPrincipalsEmail, true, oResult)
+	const
+		findKeysResult = new COpenPgpResult(),
+		privateKeys = this.findKeysByEmails([fromEmail], false, findKeysResult),
+		publicKeysFromContacts = await getKeysFromArmors(publicKeysArmorsFromContacts),
+		publicKeysFromContactsEmails = publicKeysArmorsFromContacts.map(publicKey => publicKey.Email),
+		notFoundPrincipalsEmails = principalsEmail.filter(email => !publicKeysFromContactsEmails.includes(email)),
+		publicKeysFromLocalStorage = this.findKeysByEmails(notFoundPrincipalsEmails, true, findKeysResult),
+		allPublicKeys = publicKeysFromContacts.concat(publicKeysFromLocalStorage)
 	;
 
-	if (!oResult.hasErrors())
-	{
-		try
-		{
-			const oEncryptionResult = await this.encryptData(sData,
-				aPublicKeys,
-				aPrivateKeys,
-				false, //bPasswordBasedEncryption
-				true, //bSign
-				sPassphrase
-			);
-			if (oEncryptionResult.result)
-			{
-				let { data, password } = oEncryptionResult.result;
-				if (_.isFunction(fOkHandler))
-				{
-					fOkHandler({result: data});
-				}
-			}
-			else if (_.isFunction(fErrorHandler))
-			{
-				fErrorHandler(oEncryptionResult);
-			}
+	if (findKeysResult.hasErrors()) {
+		if (_.isFunction(errorHandler)) {
+			errorHandler(findKeysResult);
 		}
-		catch (e)
-		{
-			oResult.addExceptionMessage(e, Enums.OpenPgpErrors.SignAndEncryptError);
-			if (_.isFunction(fErrorHandler))
-			{
-				fErrorHandler(oResult);
-			}
-		}
+		return;
 	}
-	else if (_.isFunction(fErrorHandler))
-	{
-		fErrorHandler(oResult);
+
+	try {
+		const
+			isPasswordBasedEncryption = false,
+			needToSign = true,
+			encryptionResult = await this.encryptData(dataToEncrypt, allPublicKeys, privateKeys,
+				isPasswordBasedEncryption, needToSign, passphrase
+			)
+		;
+		if (encryptionResult.result) {
+			const { data, password } = encryptionResult.result;
+			if (_.isFunction(successCallback)) {
+				successCallback({result: data});
+			}
+		} else if (_.isFunction(errorHandler)) {
+			errorHandler(encryptionResult);
+		}
+	} catch (e) {
+		findKeysResult.addExceptionMessage(e, Enums.OpenPgpErrors.SignAndEncryptError);
+		if (_.isFunction(errorHandler)) {
+			errorHandler(findKeysResult);
+		}
 	}
 };
 
