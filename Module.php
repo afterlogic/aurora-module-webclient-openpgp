@@ -118,14 +118,24 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 			{
 				if (isset($sPublicPgpKey)) {
 					$oContact->setExtendedProp($this->GetName() . '::PgpKey', $sPublicPgpKey);
+				} else {
+					$oContact->unsetExtendedProp($this->GetName() . '::PgpKey');
 				}
 				if (isset($aArgs['Contact']['PgpEncryptMessages']) && is_bool($aArgs['Contact']['PgpEncryptMessages']))
 				{
-					$oContact->setExtendedProp($this->GetName() . '::PgpEncryptMessages', $aArgs['Contact']['PgpEncryptMessages']);
+					if ($aArgs['Contact']['Storage'] !== StorageType::Team) {
+						$oContact->setExtendedProp($this->GetName() . '::PgpEncryptMessages', $aArgs['Contact']['PgpEncryptMessages']);
+					} else {
+						$oContact->setExtendedProp($this->GetName() . '::PgpEncryptMessages_' . $aArgs['UserId'], $aArgs['Contact']['PgpEncryptMessages']);
+					}
 				}
 				if (isset($aArgs['Contact']['PgpSignMessages']) && is_bool($aArgs['Contact']['PgpSignMessages']))
 				{
-					$oContact->setExtendedProp($this->GetName() . '::PgpSignMessages', $aArgs['Contact']['PgpSignMessages']);
+					if ($aArgs['Contact']['Storage'] !== StorageType::Team) {
+						$oContact->setExtendedProp($this->GetName() . '::PgpSignMessages', $aArgs['Contact']['PgpSignMessages']);
+					} else {
+						$oContact->setExtendedProp($this->GetName() . '::PgpSignMessages_' . $aArgs['UserId'], $aArgs['Contact']['PgpSignMessages']);					
+					}
 				}
 				\Aurora\Modules\Contacts\Module::Decorator()->UpdateContactObject($oContact);
 				if (is_array($mResult) && isset($mResult['ETag'])) {
@@ -403,30 +413,28 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 		return $aResult;
 	}
 
-	protected function updatePublicKey($UserId, $oContact, $PublicPgpKey, $PgpEncryptMessages = false, $PgpSignMessages = false) 
+	protected function updatePublicKeyFlags($UserId, $oContact, $PgpEncryptMessages = false, $PgpSignMessages = false) 
 	{
 		$mResult = false;
 
 		if ($oContact instanceof Contact) {
-			$oContact->setExtendedProp($this->GetName() . '::PgpKey', $PublicPgpKey);
-
-			if ($oContact->Storage !== StorageType::Team) {
+			if ($oContact->Storage === StorageType::Team) {
+				$oContact->setExtendedProp($this->GetName() . '::PgpEncryptMessages_' . $UserId, $PgpEncryptMessages);
+				$oContact->setExtendedProp($this->GetName() . '::PgpSignMessages_' . $UserId, $PgpSignMessages);
+				$oContact->save();		
+			} else {
 				$oContact->setExtendedProp($this->GetName() . '::PgpEncryptMessages', $PgpEncryptMessages);
 				$oContact->setExtendedProp($this->GetName() . '::PgpSignMessages', $PgpSignMessages);
-			} else {
-				$oContact->setExtendedProp($this->GetName() . '::PgpEncryptMessages_' . $UserId, $PgpEncryptMessages);
-				$oContact->setExtendedProp($this->GetName() . '::PgpSignMessages_' . $UserId, $PgpSignMessages);				
+				$mResult = \Aurora\Modules\Contacts\Module::Decorator()->UpdateContactObject($oContact);
 			}
-
-			$mResult = \Aurora\Modules\Contacts\Module::Decorator()->UpdateContactObject($oContact);
 		}
 		return $mResult;
 	}
 
-	public function UpdateContactPublicKey($UserId, $UUID, $PublicPgpKey, $PgpEncryptMessages = false, $PgpSignMessages = false) 
+	public function UpdateContactPublicKeyFlags($UserId, $UUID, $PgpEncryptMessages = false, $PgpSignMessages = false) 
 	{
 		$oContact = \Aurora\Modules\Contacts\Module::Decorator()->GetContact($UUID, $UserId);
-		$mResult = $this->updatePublicKey($UserId, $oContact, $PublicPgpKey, $PgpEncryptMessages, $PgpSignMessages);
+		$mResult = $this->updatePublicKeyFlags($UserId, $oContact, $PgpEncryptMessages, $PgpSignMessages);
 
 		return $mResult;
 	}
