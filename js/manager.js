@@ -212,22 +212,6 @@ module.exports = function (oAppData) {
 				return oResult;
 			},
 
-			deleteExternalKey(oKey, fCallback)
-			{
-				Ajax.send(
-					'%ModuleName%',
-					'RemovePublicKeyFromContact',
-					{ 'Email': oKey.getEmail() },
-					oResponse => {
-						if (oResponse && oResponse.Result)
-						{
-							fCallback(oResponse.Result);
-						}
-					},
-					this
-				);
-			},
-
 			getOpenPgpEncryptor()
 			{
 				let OpenPgp = require('modules/%ModuleName%/js/OpenPgp.js');
