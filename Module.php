@@ -471,7 +471,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 				$oContact = $this->getTeamContactByUser($oUser);
 				if ($oContact instanceof Contact) {
 					$oContact->setExtendedProp($this->GetName() . '::PgpKey', $PublicPgpKey);
-					$oContact->save();
+					$mResult = $oContact->save();
 				}
 			}
 		}
