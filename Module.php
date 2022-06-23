@@ -460,7 +460,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 		return $mResult;
 	}
 
-	public function UpdateMyContactPublicKey($UserId, $PublicPgpKey)
+	public function UpdateOwnContactPublicKey($UserId, $PublicPgpKey)
 	{
 		$mResult = false;
 
@@ -470,7 +470,8 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 			if ($oUser->Id === $UserId) {
 				$oContact = $this->getTeamContactByUser($oUser);
 				if ($oContact instanceof Contact) {
-					$mResult = $this->updatePublicKey($UserId, $oContact, $PublicPgpKey);
+					$oContact->setExtendedProp($this->GetName() . '::PgpKey', $PublicPgpKey);
+					$oContact->save();
 				}
 			}
 		}
@@ -478,7 +479,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 		return $mResult;
 	}
 
-	public function GetMyContactPublicKey($UserId)
+	public function GetOwnContactPublicKey($UserId)
 	{
 		$mResult = false;
 
@@ -489,7 +490,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 			if ($oUser->Id === $UserId) {
 				$oContact = $this->getTeamContactByUser($oUser);
 				if ($oContact instanceof Contact) {
-					$mResult = $this->getContactPgpData($oContact, $UserId);
+					$mResult = $oContact->getExtendedProp($this->GetName() . '::PgpKey', false);
 				}
 			}
 		}
