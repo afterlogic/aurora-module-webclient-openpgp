@@ -28,7 +28,7 @@ function CEncryptPopup()
 	this.data = ko.observable('');
 	this.fromEmail = ko.observable('');
 	this.emails = ko.observableArray([]);
-	this.publicKeysArmorsFromContacts = [];
+	this.contactsUUIDs = [];
 	this.successEncryptCallback = () => {};
 	this.needToSign = ko.observable(true);
 	this.needToEncrypt = ko.observable(true);
@@ -63,19 +63,10 @@ CEncryptPopup.prototype.onOpen = function (dataToEncrypt, fromEmail, resipientsI
 	this.data(dataToEncrypt);
 	this.fromEmail(fromEmail);
 	this.emails(resipientsInfo.map(info => info.email));
-	this.publicKeysArmorsFromContacts = [];
+	this.contactsUUIDs = resipientsInfo.map(info => info.uuid);
 	this.successEncryptCallback = _.isFunction(successEncryptCallback) ? successEncryptCallback : () => {};
 	this.needToSign(true);
 	this.needToEncrypt(true);
-
-	const parameters = {
-		'ContactUUIDs': resipientsInfo.map(info => info.uuid)
-	};
-	Ajax.send('OpenPgpWebclient', 'GetPublicKeysByCountactUUIDs', parameters, response => {
-		if (Array.isArray(response.Result)) {
-			this.publicKeysArmorsFromContacts = response.Result;
-		}
-	});
 };
 
 CEncryptPopup.prototype.executeSignEncrypt = function ()
@@ -114,13 +105,13 @@ CEncryptPopup.prototype.executeSignEncrypt = function ()
 				pgpAction = Enums.PgpAction.EncryptSign;
 				okReport = TextUtils.i18n('%MODULENAME%/REPORT_MESSAGE_SIGNED_ENCRYPTED_SUCCSESSFULLY');
 				OpenPgp.signAndEncrypt(dataToEncrypt, privateEmail, principalsEmails, '', successHandler,
-					errorHandler, this.publicKeysArmorsFromContacts
+					errorHandler, this.contactsUUIDs
 				);
 			} else {
 				pgpAction = Enums.PgpAction.Encrypt;
 				okReport = TextUtils.i18n('%MODULENAME%/REPORT_MESSAGE_ENCRYPTED_SUCCSESSFULLY');
 				OpenPgp.encrypt(dataToEncrypt, principalsEmails, successHandler, errorHandler,
-					this.publicKeysArmorsFromContacts
+					this.contactsUUIDs
 				);
 			}
 		}

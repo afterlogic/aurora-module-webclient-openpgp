@@ -621,61 +621,39 @@ COpenPgp.prototype.findKeyByID = function (sID, bPublic)
 };
 
 /**
- * @param {Array} aEmail
- * @param {boolean} bIsPublic
- * @param {COpenPgpResult=} oResult
- * @return {Array}
+ * @param {array} emails
+ * @param {boolean} isPublicKey
+ * @param {COpenPgpResult=} findKeysResult
+ * @return {array}
  */
-COpenPgp.prototype.findKeysByEmails = function (aEmail, bIsPublic, oResult)
+COpenPgp.prototype.findKeysByEmails = function (emails, isPublicKey = true, findKeysResult = null)
 {
-	bIsPublic = !!bIsPublic;
-
-	let
-		aResult = [],
-		aKeys = this.keys()
-	;
-	_.each(aEmail, sEmail => {
-		let oKey = _.find(aKeys, oKey => {
-			return oKey && bIsPublic === oKey.isPublic() && sEmail === oKey.getEmail();
-		});
-
-		if (oKey)
-		{
-			aResult.push(oKey);
-		}
-		else
-		{
-			if (oResult)
-			{
-				oResult.addError(bIsPublic ?
-					Enums.OpenPgpErrors.PublicKeyNotFoundError : Enums.OpenPgpErrors.PrivateKeyNotFoundError, sEmail);
-			}
-		}
+	const openPgpKeys = this.keys().filter(key => {
+		return key && isPublicKey === key.isPublic() && emails.includes(key.getEmail());
 	});
-
-	return aResult;
+	if (findKeysResult) {
+		const
+			emailsFromKeys = openPgpKeys.map(key => key.getEmail()),
+			diffEmails = emails.filter(email => !emailsFromKeys.includes(email))
+		;
+		diffEmails.forEach(email => {
+			const errorCode = isPublicKey
+					? Enums.OpenPgpErrors.PublicKeyNotFoundError
+					: Enums.OpenPgpErrors.PrivateKeyNotFoundError;
+			findKeysResult.addError(errorCode, email);
+		});
+	}
+	return openPgpKeys;
 };
 
 /**
- * @param {type} aEmail
- * @returns {Array}
+ * @param {string} email
+ * @returns {array}
  */
-COpenPgp.prototype.getPublicKeysIfExistsByEmail = function (sEmail)
+COpenPgp.prototype.getPublicKeysIfExistsByEmail = function (email)
 {
-	let
-		aResult = [],
-		aKeys = this.keys(),
-		oKey = _.find(aKeys, oKey => {
-			return oKey && oKey.isPublic() === true && sEmail === oKey.getEmail();
-		})
-	;
-
-	if (oKey)
-	{
-		aResult.push(oKey);
-	}
-
-	return aResult;
+	const publicKeys = this.findKeysByEmails([email], true);
+	return publicKeys.length > 1 ? [publicKeys[0]] : publicKeys;
 };
 
 /**
@@ -816,23 +794,46 @@ COpenPgp.prototype.verify = async function (sData, sFromEmail, fOkHandler, fErro
 	});
 };
 
+COpenPgp.prototype.getPublicKeysByContactsAndEmails = async function (contactUUIDs, emails)
+{
+	return new Promise((resolve, reject) => {
+		console.log({contactUUIDs, emails});
+		const
+			parameters = {
+				ContactUUIDs: contactUUIDs
+			},
+			responseHandler = async response => {
+				console.log({response});
+				const
+					publicKeysArmorsFromContacts = Array.isArray(response.Result) ? response.Result : [],
+					publicKeysFromContacts = await getKeysFromArmors(publicKeysArmorsFromContacts),
+					publicKeysFromContactsEmails = publicKeysFromContacts.map(publicKey => publicKey.emailParts.email),
+					notFoundPrincipalsEmails = emails.filter(email => !publicKeysFromContactsEmails.includes(email)),
+					publicKeysFromLocalStorage = this.findKeysByEmails(notFoundPrincipalsEmails),
+					allPublicKeys = publicKeysFromContacts.concat(publicKeysFromLocalStorage)
+				;
+				console.log({publicKeysArmorsFromContacts, publicKeysFromContacts, publicKeysFromContactsEmails, notFoundPrincipalsEmails, publicKeysFromLocalStorage});
+				resolve(allPublicKeys);
+			}
+		;
+		Ajax.send('OpenPgpWebclient', 'GetPublicKeysByCountactUUIDs', parameters, responseHandler);
+	});
+};
+
 /**
  * @param {string} dataToEncrypt
  * @param {array} principalsEmails
  * @param {function} successCallback
  * @param {function} errorCallback
+ * @param {array} contactsUUIDs
  * @return {string}
  */
 COpenPgp.prototype.encrypt = async function (dataToEncrypt, principalsEmails, successCallback,
-		errorCallback, publicKeysArmorsFromContacts = [])
+		errorCallback, contactsUUIDs = [])
 {
 	const
 		findKeysResult = new COpenPgpResult(),
-		publicKeysFromContacts = await getKeysFromArmors(publicKeysArmorsFromContacts),
-		publicKeysFromContactsEmails = publicKeysArmorsFromContacts.map(publicKey => publicKey.Email),
-		notFoundPrincipalsEmails = principalsEmails.filter(email => !publicKeysFromContactsEmails.includes(email)),
-		publicKeysFromLocalStorage = this.findKeysByEmails(notFoundPrincipalsEmails, true, findKeysResult),
-		allPublicKeys = publicKeysFromContacts.concat(publicKeysFromLocalStorage)
+		allPublicKeys = await this.getPublicKeysByContactsAndEmails(contactsUUIDs, principalsEmails)
 	;
 
 	if (findKeysResult.hasErrors()) {
@@ -930,24 +931,20 @@ COpenPgp.prototype.sign = async function (dataToSign, fromEmail, successCallback
 /**
  * @param {string} dataToEncrypt
  * @param {string} fromEmail
- * @param {Array} principalsEmail
+ * @param {Array} principalsEmails
  * @param {string} passphrase
  * @param {Function} successCallback
  * @param {Function} errorHandler
- * @param {Array} publicKeysArmorsFromContacts
+ * @param {Array} contactsUUIDs
  * @return {string}
  */
-COpenPgp.prototype.signAndEncrypt = async function (dataToEncrypt, fromEmail, principalsEmail, passphrase,
-		successCallback, errorHandler, publicKeysArmorsFromContacts = [])
+COpenPgp.prototype.signAndEncrypt = async function (dataToEncrypt, fromEmail, principalsEmails, passphrase,
+		successCallback, errorHandler, contactsUUIDs = [])
 {
 	const
 		findKeysResult = new COpenPgpResult(),
 		privateKeys = this.findKeysByEmails([fromEmail], false, findKeysResult),
-		publicKeysFromContacts = await getKeysFromArmors(publicKeysArmorsFromContacts),
-		publicKeysFromContactsEmails = publicKeysArmorsFromContacts.map(publicKey => publicKey.Email),
-		notFoundPrincipalsEmails = principalsEmail.filter(email => !publicKeysFromContactsEmails.includes(email)),
-		publicKeysFromLocalStorage = this.findKeysByEmails(notFoundPrincipalsEmails, true, findKeysResult),
-		allPublicKeys = publicKeysFromContacts.concat(publicKeysFromLocalStorage)
+		allPublicKeys = await this.getPublicKeysByContactsAndEmails(contactsUUIDs, principalsEmails)
 	;
 
 	if (findKeysResult.hasErrors()) {
@@ -1448,36 +1445,31 @@ COpenPgp.prototype.showPgpErrorByCode = function (oOpenPgpResult, sPgpAction, sD
 };
 
 /**
- * @param {string} sMessage
+ * @param {string} messageToEncrypt
  * @param {string} aPrincipalsEmail
- * @param {boolean} bSign
- * @param {string} sPassphrase
- * @param {string} sFromEmail
+ * @param {boolean} needToSign
+ * @param {string} passphrase
+ * @param {string} fromEmail
+ * @param {string} contactUUID
  * @return {COpenPgpResult}
  */
-COpenPgp.prototype.encryptMessage = async function (sMessage, sPrincipalsEmail, bSign, sPassphrase, sFromEmail)
+COpenPgp.prototype.encryptMessage = async function (messageToEncrypt, principalEmail, needToSign,
+		passphrase, fromEmail, contactUUID = '')
 {
-	const aEmailForEncrypt = this.findKeysByEmails([sFromEmail], true).length > 0
-		? [sPrincipalsEmail, sFromEmail]
-		: [sPrincipalsEmail];
-	let aPublicKeys = this.findKeysByEmails(aEmailForEncrypt, true);
-	let aPrivateKeys = this.findKeysByEmails([sFromEmail], false);
-	let oEncryptionResult = await this.encryptData(
-		sMessage,
-		aPublicKeys,
-		aPrivateKeys,
-		/*bPasswordBasedEncryption*/false,
-		bSign,
-		sPassphrase
-	);
+	const
+		publicKeys = await this.getPublicKeysByContactsAndEmails([contactUUID], [principalEmail]),
+		privateKeys = this.findKeysByEmails([fromEmail], false),
+		isPasswordBasedEncryption = false,
+		encryptionResult = await this.encryptData(messageToEncrypt, publicKeys, privateKeys,
+			isPasswordBasedEncryption, needToSign, passphrase)
+	;
 
-	if (oEncryptionResult.result)
-	{
-		let {data, password} = oEncryptionResult.result;
-		oEncryptionResult.result = data;
+	if (encryptionResult.result) {
+		let {data, password} = encryptionResult.result;
+		encryptionResult.result = data;
 	}
 
-	return oEncryptionResult;
+	return encryptionResult;
 };
 
 module.exports = new COpenPgp();
