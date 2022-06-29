@@ -797,13 +797,11 @@ COpenPgp.prototype.verify = async function (sData, sFromEmail, fOkHandler, fErro
 COpenPgp.prototype.getPublicKeysByContactsAndEmails = async function (contactUUIDs, emails)
 {
 	return new Promise((resolve, reject) => {
-		console.log({contactUUIDs, emails});
 		const
 			parameters = {
 				ContactUUIDs: contactUUIDs
 			},
 			responseHandler = async response => {
-				console.log({response});
 				const
 					publicKeysArmorsFromContacts = Array.isArray(response.Result) ? response.Result : [],
 					publicKeysFromContacts = await getKeysFromArmors(publicKeysArmorsFromContacts),
@@ -812,7 +810,6 @@ COpenPgp.prototype.getPublicKeysByContactsAndEmails = async function (contactUUI
 					publicKeysFromLocalStorage = this.findKeysByEmails(notFoundPrincipalsEmails),
 					allPublicKeys = publicKeysFromContacts.concat(publicKeysFromLocalStorage)
 				;
-				console.log({publicKeysArmorsFromContacts, publicKeysFromContacts, publicKeysFromContactsEmails, notFoundPrincipalsEmails, publicKeysFromLocalStorage});
 				resolve(allPublicKeys);
 			}
 		;
@@ -988,7 +985,8 @@ COpenPgp.prototype.signAndEncrypt = async function (dataToEncrypt, fromEmail, pr
  * @param {string} sPassphrase
  * @return {COpenPgpResult}
  */
-COpenPgp.prototype.encryptData = async function (Data, aPublicKeys = [], aPrivateKeys = [], bPasswordBasedEncryption = false, bSign = false, sPassphrase = '')
+COpenPgp.prototype.encryptData = async function (Data, aPublicKeys = [], aPrivateKeys = [],
+	bPasswordBasedEncryption = false, bSign = false, sPassphrase = '')
 {
 	let
 		oResult = new COpenPgpResult(),
