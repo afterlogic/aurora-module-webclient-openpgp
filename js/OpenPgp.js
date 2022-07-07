@@ -1089,6 +1089,7 @@ COpenPgp.prototype.encryptData = async function (Data, aPublicKeys = [], aPrivat
 
 			oResult.result = {
 				data:		bIsBlob ? oPgpResult.message.packets.write() : oPgpResult.data,
+				passphrase: sPassphrase,
 				password:	sPassword
 			};
 		}
