@@ -47,6 +47,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 		$this->subscribeEvent('Contacts::CreateContact::after', array($this, 'onAfterCreateOrUpdateContact'));
 		$this->subscribeEvent('Contacts::UpdateContact::after', array($this, 'onAfterCreateOrUpdateContact'));
 		$this->subscribeEvent('Contacts::GetContacts::after', array($this, 'onAfterGetContacts'));
+		$this->subscribeEvent('System::CastExtendedProp', array($this, 'onCastExtendedProp'));
 	}
 
 	/**
@@ -161,11 +162,20 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 				if (isset($aContactsInfo[$aContact['UUID']]))
 				{
 					$aContact['HasPgpPublicKey'] = true;
-					$aContact['PgpEncryptMessages'] = $aContactsInfo[$aContact['UUID']]['PgpEncryptMessages'];
-					$aContact['PgpSignMessages'] = $aContactsInfo[$aContact['UUID']]['PgpSignMessages'];
+					$aContact['PgpEncryptMessages'] = (bool) $aContactsInfo[$aContact['UUID']]['PgpEncryptMessages'];
+					$aContact['PgpSignMessages'] = (bool) $aContactsInfo[$aContact['UUID']]['PgpSignMessages'];
 				}
 			}
 		}
+	}
+
+	public function onCastExtendedProp($aArgs, &$mValue)
+	{
+		if ($aArgs['Model'] instanceof Contact && 
+			($aArgs['PropertyName'] === $this->GetName() . '::PgpEncryptMessages' || 
+				$aArgs['PropertyName'] === $this->GetName() . '::PgpSignMessages')) {
+				$mValue = (bool) $mValue;
+			}
 	}
 
 	/***** public functions might be called with web API *****/
@@ -361,13 +371,13 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 	{
 		if ($oContact->Storage !== StorageType::Team) {
 			return [
-				'PgpEncryptMessages' => $oContact->getExtendedProp($this->GetName() . '::PgpEncryptMessages', false),
-				'PgpSignMessages' => $oContact->getExtendedProp($this->GetName() . '::PgpSignMessages', false)
+				'PgpEncryptMessages' => (bool) $oContact->getExtendedProp($this->GetName() . '::PgpEncryptMessages', false),
+				'PgpSignMessages' => (bool) $oContact->getExtendedProp($this->GetName() . '::PgpSignMessages', false)
 			];
 		} else {
 			return [
-				'PgpEncryptMessages' => $oContact->getExtendedProp($this->GetName() . '::PgpEncryptMessages_' . $iUserId, false),
-				'PgpSignMessages' => $oContact->getExtendedProp($this->GetName() . '::PgpSignMessages_' . $iUserId, false)
+				'PgpEncryptMessages' => (bool) $oContact->getExtendedProp($this->GetName() . '::PgpEncryptMessages_' . $iUserId, false),
+				'PgpSignMessages' => (bool) $oContact->getExtendedProp($this->GetName() . '::PgpSignMessages_' . $iUserId, false)
 			];					
 		}
 	}
