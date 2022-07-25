@@ -158,10 +158,12 @@ module.exports = function (oAppData) {
 						oKey = await this.getKeyInfo(oContact.PublicPgpKey);
 						if (oKey)
 						{
-							if (oKey.getEmail() !== oContact.ViewEmail)
-							{
+							if (oKey.getEmail() !== oContact.ViewEmail) {
 								oResult.Error = true;
 								oResult.ErrorMessage = TextUtils.i18n('%MODULENAME%/ERROR_EMAILS_DO_NOT_MATCH');
+							} else if (oKey.isPrivate()) {
+								oResult.Error = true;
+								oResult.ErrorMessage = TextUtils.i18n('%MODULENAME%/ERROR_ADDED_KEY_NOT_PUBLIC');
 							}
 						}
 						else
