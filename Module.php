@@ -431,7 +431,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 			if ($oContact->Storage === StorageType::Team) {
 				$oContact->setExtendedProp($this->GetName() . '::PgpEncryptMessages_' . $UserId, $PgpEncryptMessages);
 				$oContact->setExtendedProp($this->GetName() . '::PgpSignMessages_' . $UserId, $PgpSignMessages);
-				$oContact->save();		
+				$mResult = $oContact->save();
 			} else {
 				$oContact->setExtendedProp($this->GetName() . '::PgpEncryptMessages', $PgpEncryptMessages);
 				$oContact->setExtendedProp($this->GetName() . '::PgpSignMessages', $PgpSignMessages);

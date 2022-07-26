@@ -246,7 +246,8 @@ module.exports = function (oAppData) {
 				fCallback(sPrivateKeyPassword);
 			},
 			
-			encryptSign(bEncrypt, bSign, sData, aPrincipalsEmail, fOkCallback, sFromEmail = '', sPrivateKeyPassword = null)
+			encryptSign(bEncrypt, bSign, sData, aPrincipalsEmail, contactsUUIDs, fOkCallback,
+						sFromEmail = '', sPrivateKeyPassword = null)
 			{
 				var
 					Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
@@ -286,12 +287,13 @@ module.exports = function (oAppData) {
 						if (bSign)
 						{
 							sPgpAction = Enums.PgpAction.EncryptSign;
-							OpenPgp.signAndEncrypt(sData, sPrivateEmail, aEmailForEncrypt, sPrivateKeyPassword, fOkHandler, fErrorHandler);
+							OpenPgp.signAndEncrypt(sData, sPrivateEmail, aEmailForEncrypt,
+								sPrivateKeyPassword, fOkHandler, fErrorHandler, contactsUUIDs);
 						}
 						else
 						{
 							sPgpAction = Enums.PgpAction.Encrypt;
-							OpenPgp.encrypt(sData, aEmailForEncrypt, fOkHandler, fErrorHandler);
+							OpenPgp.encrypt(sData, aEmailForEncrypt, fOkHandler, fErrorHandler, contactsUUIDs);
 						}
 					}
 				}
