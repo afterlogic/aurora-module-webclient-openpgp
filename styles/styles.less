@@ -31,3 +31,22 @@
 		width: 530px;
 	}
 }
+
+.pgp_key_controls {
+	margin-left: 10px;
+
+	.button {
+		.init-icon-font();
+		cursor: pointer;
+		height: 20px;
+		width: 20px;
+		font-size: 20px;
+		vertical-align: middle;
+	}
+	.button.view:before {
+		content: "\e65e";
+	}
+	.button.delete:before {
+		content: "\e65f";
+	}
+}

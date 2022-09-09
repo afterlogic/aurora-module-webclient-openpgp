@@ -1,21 +1,16 @@
 'use strict';
 
-var
+const
 	_ = require('underscore'),
 	ko = require('knockout'),
 
-	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
-
 	ModulesManager = require('%PathToCoreWebclientModule%/js/ModulesManager.js'),
-	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
 
 	CAbstractSettingsFormView = ModulesManager.run('SettingsWebclient', 'getAbstractSettingsFormViewClass'),
 
 	Popups = require('%PathToCoreWebclientModule%/js/Popups.js'),
-	ConfirmPopup = require('%PathToCoreWebclientModule%/js/popups/ConfirmPopup.js'),
 	GenerateKeyPopup = require('modules/%ModuleName%/js/popups/GenerateKeyPopup.js'),
 	ImportKeyPopup = require('modules/%ModuleName%/js/popups/ImportKeyPopup.js'),
-	ShowKeyArmorPopup = require('modules/%ModuleName%/js/popups/ShowKeyArmorPopup.js'),
 	ShowPublicKeysArmorPopup = require('modules/%ModuleName%/js/popups/ShowPublicKeysArmorPopup.js'),
 	VerifyPasswordPopup = require('modules/%ModuleName%/js/popups/VerifyPasswordPopup.js'),
 
@@ -69,6 +64,8 @@ function COpenPgpSettingsFormView()
 			return {'user': oKey.getUser(), 'armor': oKey.getArmor(), 'key': oKey, 'private': false};
 		});
 	}, this);
+
+	this.oPgpKeyControlsView = ModulesManager.run('OpenPgpWebclient', 'getPgpKeyControlsView');
 }
 
 _.extendOwn(COpenPgpSettingsFormView.prototype, CAbstractSettingsFormView.prototype);
@@ -100,29 +97,11 @@ COpenPgpSettingsFormView.prototype.generateNewKey = function ()
 };
 
 /**
- * @param {Object} oKey
+ * @param {Object} key
  */
-COpenPgpSettingsFormView.prototype.removeOpenPgpKey = function (oKey)
+COpenPgpSettingsFormView.prototype.removeOpenPgpKey = function (key)
 {
-	var
-		sConfirm = '',
-		fRemove = _.bind(async function (bRemove) {
-			if (bRemove)
-			{
-				var oRes = await OpenPgp.deleteKey(oKey);
-				if (!oRes.result)
-				{
-					Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_DELETE_KEY'));
-				}
-			}
-		}, this)
-	;
-
-	if (oKey)
-	{
-		sConfirm = TextUtils.i18n('%MODULENAME%/CONFIRM_DELETE_KEY', {'KEYEMAIL': oKey.getEmail()});
-		Popups.showPopup(ConfirmPopup, [sConfirm, fRemove]);
-	}
+	this.oPgpKeyControlsView.removeOpenPgpKey(key);
 };
 
 /**
@@ -138,11 +117,11 @@ COpenPgpSettingsFormView.prototype.verifyPassword = function (oKey)
 };
 
 /**
- * @param {Object} oKey
+ * @param {Object} key
  */
-COpenPgpSettingsFormView.prototype.showArmor = function (oKey)
+COpenPgpSettingsFormView.prototype.showArmor = function (key)
 {
-	Popups.showPopup(ShowKeyArmorPopup, [oKey]);
+	this.oPgpKeyControlsView.showArmor(key);
 };
 
 COpenPgpSettingsFormView.prototype.getCurrentValues = function ()

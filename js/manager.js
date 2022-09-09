@@ -220,6 +220,12 @@ module.exports = function (oAppData) {
 				return OpenPgp;
 			},
 
+			getPgpKeyControlsView(afterRemoveContactKeyHandler) {
+				const pgpKeyControlsView = require('modules/%ModuleName%/js/views/PgpKeyControlsView.js');
+				pgpKeyControlsView.setAfterRemoveContactKeyHandler(afterRemoveContactKeyHandler);
+				return pgpKeyControlsView;
+			},
+
 			getSuggestionsAutocompleteFilteredCallback(fSuggestionsAutocompleteCallback)
 			{
 				return (oRequest, fResponse) => {

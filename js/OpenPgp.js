@@ -226,6 +226,8 @@ COpenPgp.prototype.reloadKeysFromStorage = async function ()
 	this.keys([...keysFromLocalstorage, ...keysFromContacts]);
 };
 
+COpenPgp.prototype.getKeysFromArmors = getKeysFromArmors;
+
 /**
  * @private
  * @param {Array} aKeys

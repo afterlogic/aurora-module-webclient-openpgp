@@ -1,0 +1,10 @@
+<span class="pgp_key_controls">
+	<span class="button view"
+		  data-bind="customTooltip: '%MODULENAME%/ACTION_VIEW_KEY',
+		  click: function () { showArmor($parent.publicPgpKey(), $parent.email(), $parent.uuid()); }"
+	></span>
+	<span class="button delete"
+		  data-bind="customTooltip: '%MODULENAME%/ACTION_DELETE_KEY',
+		  click: function () { removeOpenPgpKey($parent.publicPgpKey(), $parent.email(), $parent.uuid()); }"
+	></span>
+</span>
