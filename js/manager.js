@@ -106,10 +106,10 @@ module.exports = function (oAppData) {
 									'Handler': () => {
 										Popups.showPopup(
 											ImportKeyPopup,
-											[
-												oFile.content(),
-												fOnSuccessCallback
-											]
+											[{
+												armor: oFile.content(),
+												onSuccessCallback: fOnSuccessCallback
+											}]
 										);
 									}
 								}
@@ -136,7 +136,7 @@ module.exports = function (oAppData) {
 								'Handler': () => {
 									Popups.showPopup(
 										ImportKeyPopup,
-										[ oFile.content() ]
+										[ { armor: oFile.content() } ]
 									);
 								}
 							};

@@ -26,14 +26,21 @@ function CImportKeyPopup()
 
 	this.keyArmor = ko.observable('');
 	this.keyArmorFocused = ko.observable(false);
-	
+
 	this.keysBroken = ko.observableArray([]);
 	this.keysAlreadyThere = ko.observableArray([]);
 	this.keysPrivateExternal = ko.observableArray([]);
 	this.keysToImport = ko.observableArray([]);
+	this.keysDisabledToImport = ko.observableArray([]);
 	this.keysChecked = ko.observable(false);
-	
+
+	this.allowOnlyPublicKeyForEmail = ko.observable('');
 	this.fOnSuccessCallback = null;
+	
+	this.disabledForContactHeading = ko.computed(function () {
+		const langConst = '%MODULENAME%/INFO_TEXT_CONTAINS_NOT_PUBLIC_KEYS_OR_WITHOUT_EMAIL';
+		return TextUtils.i18n(langConst, {'EMAIL': this.allowOnlyPublicKeyForEmail()});
+	}, this);
 }
 
 _.extendOwn(CImportKeyPopup.prototype, CAbstractPopup.prototype);
@@ -41,21 +48,23 @@ _.extendOwn(CImportKeyPopup.prototype, CAbstractPopup.prototype);
 CImportKeyPopup.prototype.PopupTemplate = '%ModuleName%_ImportKeyPopup';
 
 /**
- * @param {string} sArmor
- * @param {function} fOnSuccessCallback
+ * @param {string} armor
+ * @param {function} onSuccessCallback
+ * @param {string} allowOnlyPublicKeyForEmail
  */
-CImportKeyPopup.prototype.onOpen = function (sArmor, fOnSuccessCallback)
+CImportKeyPopup.prototype.onOpen = function ({ armor = '', onSuccessCallback = () => {}, allowOnlyPublicKeyForEmail = '' })
 {
-	this.keyArmor(sArmor || '');
+	this.keyArmor(armor);
 	this.keyArmorFocused(true);
-	
+
 	this.keysBroken([]);
 	this.keysAlreadyThere([]);
 	this.keysPrivateExternal([]);
 	this.keysToImport([]);
 	this.keysChecked(false);
-	
-	this.fOnSuccessCallback = fOnSuccessCallback;
+
+	this.allowOnlyPublicKeyForEmail(allowOnlyPublicKeyForEmail);
+	this.fOnSuccessCallback = onSuccessCallback;
 
 	if (this.keyArmor() !== '')
 	{
@@ -70,6 +79,7 @@ CImportKeyPopup.prototype.checkArmor = async function ()
 		aKeysBroken = [],
 		aKeysAlreadyThere = [],
 		aKeysPrivateExternal = [],
+		keysDisabledToImport = [],
 		aKeysToImport = []
 	;
 
@@ -108,6 +118,11 @@ CImportKeyPopup.prototype.checkArmor = async function ()
 					{
 						aKeysAlreadyThere.push(oKeyData);
 					}
+					else if (this.allowOnlyPublicKeyForEmail() !== '' &&
+							(this.allowOnlyPublicKeyForEmail() !== oKey.getEmail() || !oKey.isPublic())
+					) {
+						keysDisabledToImport.push(oKeyData);
+					}
 					else if (!oKey.isPublic() && !OpenPgp.isOwnEmail(oKey.getEmail()))
 					{
 						aKeysPrivateExternal.push(oKeyData);
@@ -120,11 +135,13 @@ CImportKeyPopup.prototype.checkArmor = async function ()
 			});
 		}
 
-		if (aKeysBroken.length > 0 || aKeysAlreadyThere.length > 0 || aKeysPrivateExternal.length > 0 || aKeysToImport.length > 0)
-		{
+		if (aKeysBroken.length > 0 || aKeysAlreadyThere.length > 0 || aKeysPrivateExternal.length > 0 ||
+				keysDisabledToImport.length > 0 || aKeysToImport.length > 0
+		) {
 			this.keysBroken(aKeysBroken);
 			this.keysAlreadyThere(aKeysAlreadyThere);
 			this.keysPrivateExternal(aKeysPrivateExternal);
+			this.keysDisabledToImport(keysDisabledToImport);
 			this.keysToImport(aKeysToImport);
 			this.keysChecked(true);
 		}
