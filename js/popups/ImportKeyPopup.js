@@ -175,7 +175,7 @@ CImportKeyPopup.prototype.importKey = async function ()
 			Screens.showReport(TextUtils.i18n('%MODULENAME%/REPORT_KEY_SUCCESSFULLY_IMPORTED_PLURAL', {}, null, aArmors.length));
 			if (_.isFunction(this.fOnSuccessCallback))
 			{
-				this.fOnSuccessCallback();
+				this.fOnSuccessCallback(aArmors[0]);
 			}
 		}
 
