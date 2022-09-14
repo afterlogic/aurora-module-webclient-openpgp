@@ -5,6 +5,7 @@
 	></span>
 	<span class="button delete"
 		  data-bind="customTooltip: '%MODULENAME%/ACTION_DELETE_KEY',
+		  visible: $parent.edited,
 		  click: function () { removeOpenPgpKey($parent.publicPgpKey(), $parent.email(), $parent.uuid()); }"
 	></span>
 </span>

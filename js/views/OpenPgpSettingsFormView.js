@@ -88,7 +88,7 @@ COpenPgpSettingsFormView.prototype.exportAllPublicKeys = function ()
 
 COpenPgpSettingsFormView.prototype.importKey = function ()
 {
-	Popups.showPopup(ImportKeyPopup);
+	Popups.showPopup(ImportKeyPopup, [{}]);
 };
 
 COpenPgpSettingsFormView.prototype.generateNewKey = function ()
