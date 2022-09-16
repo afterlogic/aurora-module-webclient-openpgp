@@ -486,7 +486,48 @@ COpenPgp.prototype.isOwnEmail = function (sEmail)
 		let oEmailParts = AddressUtils.getEmailParts(sOwnEmail);
 		return sEmail === oEmailParts.email
 	}) != undefined) ? true : false;
-}
+};
+
+/**
+ * Imports keys only to personal contatcs.
+ * @param {string} armorsText
+ * @return {COpenPgpResult}
+ */
+COpenPgp.prototype.importExternalKeys = async function (armorsText)
+{
+	armorsText = $.trim(armorsText);
+	if (!armorsText) {
+		return importResult.addError(Enums.OpenPgpErrors.InvalidArgumentErrors);
+	}
+
+	let
+		importResult = new COpenPgpResult(),
+		armorsData = this.splitKeys(armorsText),
+		externalKeys = []
+	;
+
+	for (let index = 0; index < armorsData.length; index++) {
+		const armorData = armorsData[index];
+		if ('PUBLIC' === armorData[0]) {
+			const publicKey = await openpgp.key.readArmored(armorData[1]);
+			if (publicKey && !publicKey.err && publicKey.keys && publicKey.keys[0]) {
+				const
+					openPgpKey = new COpenPgpKey(publicKey.keys[0]),
+					keyEmail = openPgpKey.getEmail()
+				;
+				externalKeys.push(openPgpKey);
+			}
+		}
+	}
+
+	if (externalKeys.length > 0) {
+		if (await importExternalKeys(externalKeys)) {
+			this.reloadKeysFromStorage();
+		}
+	}
+
+	return importResult;
+};
 
 /**
  * @param {string} armorsText

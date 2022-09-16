@@ -168,7 +168,11 @@ CImportKeyPopup.prototype.importKey = async function ()
 
 	if (aArmors.length > 0)
 	{
-		oRes = await OpenPgp.importKeys(aArmors.join(''));
+		if (this.allowOnlyPublicKeyForEmail() !== '' && aArmors.length === 1) {
+			oRes = await OpenPgp.importExternalKeys(aArmors);
+		} else {
+			oRes = await OpenPgp.importKeys(aArmors.join(''));
+		}
 
 		if (oRes && oRes.result)
 		{
