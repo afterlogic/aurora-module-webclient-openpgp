@@ -52,7 +52,8 @@ CImportKeyPopup.prototype.PopupTemplate = '%ModuleName%_ImportKeyPopup';
  * @param {function} onSuccessCallback
  * @param {string} allowOnlyPublicKeyForEmail
  */
-CImportKeyPopup.prototype.onOpen = function ({ armor = '', onSuccessCallback = () => {}, allowOnlyPublicKeyForEmail = '' })
+CImportKeyPopup.prototype.onOpen = function ({ armor = '', onSuccessCallback = () => {},
+	allowOnlyPublicKeyForEmail = '', isOwnContact = false })
 {
 	this.keyArmor(armor);
 	this.keyArmorFocused(true);
@@ -64,6 +65,7 @@ CImportKeyPopup.prototype.onOpen = function ({ armor = '', onSuccessCallback = (
 	this.keysChecked(false);
 
 	this.allowOnlyPublicKeyForEmail(allowOnlyPublicKeyForEmail);
+	this.isOwnContact = isOwnContact;
 	this.fOnSuccessCallback = onSuccessCallback;
 
 	if (this.keyArmor() !== '')
@@ -169,7 +171,7 @@ CImportKeyPopup.prototype.importKey = async function ()
 	if (aArmors.length > 0)
 	{
 		if (this.allowOnlyPublicKeyForEmail() !== '' && aArmors.length === 1) {
-			oRes = await OpenPgp.importExternalKeys(aArmors);
+			oRes = await OpenPgp.addKeyToContact(aArmors[0], this.isOwnContact);
 		} else {
 			oRes = await OpenPgp.importKeys(aArmors.join(''));
 		}

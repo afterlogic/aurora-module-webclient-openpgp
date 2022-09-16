@@ -490,38 +490,35 @@ COpenPgp.prototype.isOwnEmail = function (sEmail)
 
 /**
  * Imports keys only to personal contatcs.
- * @param {string} armorsText
+ * @param {string} armor
  * @return {COpenPgpResult}
  */
-COpenPgp.prototype.importExternalKeys = async function (armorsText)
+COpenPgp.prototype.addKeyToContact = async function (armor, isOwnContact)
 {
-	armorsText = $.trim(armorsText);
-	if (!armorsText) {
+	armor = $.trim(armor);
+	const importResult = new COpenPgpResult();
+	if (!armor) {
 		return importResult.addError(Enums.OpenPgpErrors.InvalidArgumentErrors);
 	}
 
 	let
-		importResult = new COpenPgpResult(),
-		armorsData = this.splitKeys(armorsText),
-		externalKeys = []
+		armorsData = this.splitKeys(armor),
+		armorData = armorsData.length === 1 ? armorsData[0] : null
 	;
 
-	for (let index = 0; index < armorsData.length; index++) {
-		const armorData = armorsData[index];
-		if ('PUBLIC' === armorData[0]) {
-			const publicKey = await openpgp.key.readArmored(armorData[1]);
-			if (publicKey && !publicKey.err && publicKey.keys && publicKey.keys[0]) {
-				const
-					openPgpKey = new COpenPgpKey(publicKey.keys[0]),
-					keyEmail = openPgpKey.getEmail()
-				;
-				externalKeys.push(openPgpKey);
+	if (Array.isArray(armorData) && armorData.length === 2 && 'PUBLIC' === armorData[0]) {
+		const armorData = armorsData[0];
+		const publicKey = await openpgp.key.readArmored(armorData[1]);
+		if (publicKey && !publicKey.err && publicKey.keys && publicKey.keys[0]) {
+			const
+				openPgpKey = new COpenPgpKey(publicKey.keys[0]),
+				keyEmail = openPgpKey.getEmail()
+			;
+			if (isOwnContact && keyEmail === App.getUserPublicId()) {
+				await updateOwnContactPublicKey(armorData[1]);
+			} else {
+				await importExternalKeys([openPgpKey]);
 			}
-		}
-	}
-
-	if (externalKeys.length > 0) {
-		if (await importExternalKeys(externalKeys)) {
 			this.reloadKeysFromStorage();
 		}
 	}
@@ -536,12 +533,12 @@ COpenPgp.prototype.importExternalKeys = async function (armorsText)
 COpenPgp.prototype.importKeys = async function (armorsText)
 {
 	armorsText = $.trim(armorsText);
+	const importResult = new COpenPgpResult();
 	if (!armorsText) {
 		return importResult.addError(Enums.OpenPgpErrors.InvalidArgumentErrors);
 	}
 
 	let
-		importResult = new COpenPgpResult(),
 		importedToLocalstorageCount = 0,
 		importedToContactsCount = 0,
 		armorsData = this.splitKeys(armorsText),
