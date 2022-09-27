@@ -1,0 +1,31 @@
+<div class="fieldset">
+	<div class="row">
+		<b class="value"
+		   data-bind="i18n: {'key': '%MODULENAME%/LABEL_PUBLIC_KEYS_FROM_PERSONAL_CONTACTS'}"
+		></b>
+	</div>
+	<div class="row keys_label" data-bind="visible: keysFromPersonalContacts().length === 0">
+		<span class="value"
+			  data-bind="i18n: {'key': '%MODULENAME%/INFO_NO_PUBLIC_KEYS_FROM_PERSONAL_CONTACTS'}"
+		></span>
+	</div>
+	<div class="row folders items_list" data-bind="foreach: keysFromPersonalContacts">
+		<div class="item">
+			<span class="title">
+				<span class="controls">
+					<span class="button subscribe subscribed"
+						  data-bind="customTooltip: '%MODULENAME%/ACTION_VIEW_KEY',
+						  click: function () { $parent.showArmor($data); }"
+					></span>
+					<span class="button delete"
+						  data-bind="customTooltip: '%MODULENAME%/ACTION_DELETE_KEY',
+						  click: function () { $parent.removeKeyFromContacts($data); }"
+					></span>
+				</span>
+				<span class="name">
+					<span class="text" data-bind="text: $data.getUser()"></span>
+				</span>
+			</span>
+		</div>
+	</div>
+</div>

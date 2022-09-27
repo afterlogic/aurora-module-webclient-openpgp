@@ -7,14 +7,18 @@ var
 	AddressUtils = require('%PathToCoreWebclientModule%/js/utils/Address.js'),
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
 	Types = require('%PathToCoreWebclientModule%/js/utils/Types.js'),
-	
+
+	App = require('%PathToCoreWebclientModule%/js/App.js'),
 	CAbstractPopup = require('%PathToCoreWebclientModule%/js/popups/CAbstractPopup.js'),
+	ModulesManager = require('%PathToCoreWebclientModule%/js/ModulesManager.js'),
 	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
-	
+
 	ErrorsUtils = require('modules/%ModuleName%/js/utils/Errors.js'),
-	
+
 	Enums = require('modules/%ModuleName%/js/Enums.js'),
-	OpenPgp = require('modules/%ModuleName%/js/OpenPgp.js')
+	OpenPgp = require('modules/%ModuleName%/js/OpenPgp.js'),
+
+	isTeamContactsAvailable = ModulesManager.isModuleAvailable('TeamContacts')
 ;
 
 /**
@@ -23,6 +27,10 @@ var
 function CImportKeyPopup()
 {
 	CAbstractPopup.call(this);
+
+	this.teamContactsHasOwnKey = ko.computed(() => {
+		return !!OpenPgp.ownKeyFromTeamContacts();
+	});
 
 	this.keyArmor = ko.observable('');
 	this.keyArmorFocused = ko.observable(false);
@@ -110,7 +118,8 @@ CImportKeyPopup.prototype.checkArmor = async function ()
 						'id': oKey.getId(),
 						'addInfo': TextUtils.i18n(sAddInfoLangKey, {'LENGTH': oKey.getBitSize()}),
 						'needToImport': ko.observable(!bHasSameKey && !bNoEmail),
-						'isExternal': !OpenPgp.isOwnEmail(oKey.getEmail())
+						'isExternal': !OpenPgp.isOwnEmail(oKey.getEmail()),
+						'isOwn': isTeamContactsAvailable && oKey.getEmail() === App.getUserPublicId()
 					};
 					if (bNoEmail)
 					{
@@ -195,6 +204,15 @@ CImportKeyPopup.prototype.importKey = async function ()
 	else
 	{
 		Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_IMPORT_NO_KEY_SELECTED'));
+	}
+};
+
+CImportKeyPopup.prototype.saveOwnKeyToTeamContact = async function (armor) {
+	const res = await OpenPgp.addKeyToContact(armor, true);
+	if (res && res.result) {
+		Screens.showReport(TextUtils.i18n('%MODULENAME%/REPORT_KEY_SUCCESSFULLY_IMPORTED_PLURAL', {}, null, 1));
+	} else {
+		ErrorsUtils.showPgpErrorByCode(res, Enums.PgpAction.Import, TextUtils.i18n('%MODULENAME%/ERROR_IMPORT_KEY'));
 	}
 };
 

@@ -27,15 +27,14 @@ let
 	isTeamContactsAvailable = ModulesManager.isModuleAvailable('TeamContacts')
 ;
 
-async function getKeysFromArmors (armorsData, isFromContacts = false) {
+async function getKeysFromArmors (armorsData) {
 	const openPgpKeys = [];
 	for (let key of armorsData) {
 		const nativeKey = await openpgp.key.readArmored(key.PublicPgpKey);
 		if (nativeKey && !nativeKey.err && nativeKey.keys && nativeKey.keys[0]) {
 			const openPgpKey = new COpenPgpKey(nativeKey.keys[0]);
 			if (openPgpKey) {
-				openPgpKey.isFromContacts = isFromContacts;
-				openPgpKey.isExternal = key.Email !== App.getUserPublicId();
+				openPgpKey.isFromContacts = true;
 				openPgpKeys.push(openPgpKey);
 			}
 		}
@@ -77,39 +76,44 @@ async function updateOwnContactPublicKey (publicPgpKeyArmor)
 
 async function getPublicKeysFromContacts ()
 {
-	const publicKeysPromise = new Promise((resolve, reject) => {
-		let
-			responseCount = 0,
-			allOpenPgpKeys = []
-		;
+	return new Promise((resolve) => {
 		const responseHandler = async response => {
-			responseCount++;
-			const
-				result = response && response.Result,
-				armors = Types.isNonEmptyString(result)
-					? [{
-						Email: App.getUserPublicId(),
-						PublicPgpKey: result
-					}]
-					: result
-			;
+			const armors = response && response.Result;
 			if (Array.isArray(armors)) {
-				const openPgpKeys = await getKeysFromArmors(armors, true);
-				allOpenPgpKeys = allOpenPgpKeys.concat(openPgpKeys);
-			}
-			if (responseCount === 2) {
-				resolve(allOpenPgpKeys);
+				const openPgpKeys = await getKeysFromArmors(armors);
+				resolve(openPgpKeys);
 			}
 		};
 		Ajax.send('%ModuleName%', 'GetPublicKeysFromContacts', {}, responseHandler);
+	});
+}
+
+async function getOwnPublicKeyFromTeamContacts ()
+{
+	return new Promise((resolve, reject) => {
 		if (isTeamContactsAvailable) {
+			const responseHandler = async response => {
+				const
+					result = response && response.Result,
+					armors = Types.isNonEmptyString(result)
+						? [{
+							Email: App.getUserPublicId(),
+							PublicPgpKey: result
+						}]
+						: null
+				;
+				if (Array.isArray(armors)) {
+					const openPgpKeys = await getKeysFromArmors(armors);
+					resolve(openPgpKeys.length > 0 ? openPgpKeys[0] : null);
+				} else {
+					resolve(null);
+				}
+			};
 			Ajax.send('%ModuleName%', 'GetOwnContactPublicKey', {}, responseHandler);
 		} else {
-			responseHandler({Result: false});
+			resolve(null);
 		}
 	});
-
-	return await publicKeysPromise;
 }
 
 /**
@@ -121,6 +125,7 @@ function COpenPgp()
 
 	this.oKeyring = new openpgp.Keyring(new openpgp.Keyring.localstore(this.sPrefix));
 	this.keys = ko.observableArray([]);
+	this.ownKeyFromTeamContacts = ko.observable(null);
 	this.oPromiseInitialised = this.initKeys();
 
 	App.subscribeEvent('ContactsWebclient::createContactResponse', aParams => {
@@ -155,7 +160,6 @@ function COpenPgp()
 }
 
 COpenPgp.prototype.oKeyring = null;
-COpenPgp.prototype.keys = [];
 
 COpenPgp.prototype.initKeys = async function ()
 {
@@ -204,26 +208,19 @@ COpenPgp.prototype.getKeysObservable = function ()
  */
 COpenPgp.prototype.reloadKeysFromStorage = async function ()
 {
-	let keysFromLocalstorage = this.oKeyring.getAllKeys()
-								.filter(key => key && key.primaryKey)
-								.map(key => new COpenPgpKey(key));
-	const
-		keysFromContacts = App.isUserNormalOrTenant() ? await getPublicKeysFromContacts() : [],
-		ownKeyFromContacts = keysFromContacts.find(key => key.emailParts.email === App.getUserPublicId()) || null,
-		sameOwnKeyFromStorage = ownKeyFromContacts
-			? keysFromLocalstorage.find(key => key.isPublic() && key.hasId(ownKeyFromContacts.getId()))
-			: null
-	;
+	if (App.isUserNormalOrTenant()) {
+		const
+			keysFromLocalstorage = this.oKeyring.getAllKeys()
+					.filter(key => key && key.primaryKey)
+					.map(key => new COpenPgpKey(key)),
+			keysFromContacts = await getPublicKeysFromContacts()
+		;
 
-	if (sameOwnKeyFromStorage) {
-		this.oKeyring['publicKeys'].removeForId(sameOwnKeyFromStorage.getFingerprint());
-		await this.oKeyring.store();
-		keysFromLocalstorage = this.oKeyring.getAllKeys()
-								.filter(key => key && key.primaryKey)
-								.map(key => new COpenPgpKey(key));
+		this.keys([...keysFromLocalstorage, ...keysFromContacts]);
+		this.ownKeyFromTeamContacts(await getOwnPublicKeyFromTeamContacts());
+	} else {
+		this.keys([]);
 	}
-
-	this.keys([...keysFromLocalstorage, ...keysFromContacts]);
 };
 
 COpenPgp.prototype.getKeysFromArmors = getKeysFromArmors;
@@ -484,8 +481,8 @@ COpenPgp.prototype.isOwnEmail = function (sEmail)
 	;
 	return (_.find(aOwnEmails, sOwnEmail => {
 		let oEmailParts = AddressUtils.getEmailParts(sOwnEmail);
-		return sEmail === oEmailParts.email
-	}) != undefined) ? true : false;
+		return sEmail === oEmailParts.email;
+	}) !== undefined) ? true : false;
 };
 
 /**
@@ -561,11 +558,7 @@ COpenPgp.prototype.importKeys = async function (armorsText)
 					openPgpKey = new COpenPgpKey(publicKey.keys[0]),
 					keyEmail = openPgpKey.getEmail()
 				;
-				if (keyEmail === App.getUserPublicId() && isTeamContactsAvailable) {
-					if (await updateOwnContactPublicKey(armorData[1])) {
-						importedToContactsCount++;
-					}
-				} else if (this.isOwnEmail(keyEmail)) {
+				if (this.isOwnEmail(keyEmail)) {
 					try {
 						await this.oKeyring.publicKeys.importKey(armorData[1]);
 						importedToLocalstorageCount++;
@@ -866,7 +859,7 @@ COpenPgp.prototype.getPublicKeysByContactsAndEmails = async function (contactUUI
 			responseHandler = async response => {
 				const
 					publicKeysArmorsFromContacts = Array.isArray(response.Result) ? response.Result : [],
-					publicKeysFromContacts = await getKeysFromArmors(publicKeysArmorsFromContacts, true),
+					publicKeysFromContacts = await getKeysFromArmors(publicKeysArmorsFromContacts),
 					publicKeysFromContactsEmails = publicKeysFromContacts.map(publicKey => publicKey.emailParts.email),
 					notFoundPrincipalsEmails = emails.filter(email => !publicKeysFromContactsEmails.includes(email)),
 					publicKeysFromLocalStorage = this.findKeysByEmails(notFoundPrincipalsEmails),
@@ -1364,43 +1357,50 @@ COpenPgp.prototype.askForKeyPassword = async function (sKeyName)
 /**
  * @param {COpenPgpKey} openPgpKey
  */
-COpenPgp.prototype.deleteKey = async function (openPgpKey)
+COpenPgp.prototype.removeKeyFromContacts = async function (openPgpKey)
 {
 	const result = new COpenPgpResult();
 	if (!openPgpKey) {
 		return result.addError(Enums.OpenPgpErrors.InvalidArgumentError);
 	}
 
-	let needToDeleteFromStorage = false;
-	if (openPgpKey.isExternal) {
+	if (isTeamContactsAvailable && openPgpKey.emailParts.email === App.getUserPublicId() && !openPgpKey.isPrivate()) {
+		if (!(await updateOwnContactPublicKey(''))) {
+			result.addError(Enums.OpenPgpErrors.DeleteError);
+		}
+		this.reloadKeysFromStorage();
+	} else {
 		const
 			parameters = { 'Email': openPgpKey.getEmail() },
 			responseHandler = response => {
-				if (response && response.Result) {
-					this.reloadKeysFromStorage();
+				if (!response || !response.Result) {
+					result.addError(Enums.OpenPgpErrors.DeleteError);
 				}
+				this.reloadKeysFromStorage();
 			}
 		;
 		Ajax.send('%ModuleName%', 'RemovePublicKeyFromContact', parameters, responseHandler);
-	} else if (openPgpKey.emailParts.email === App.getUserPublicId() && !openPgpKey.isPrivate()) {
-		const sameKey = this.findKeyByID(openPgpKey.getId(), true);
-		if (sameKey && !sameKey.isFromContacts) {
-			needToDeleteFromStorage = true;
-		} else if (isTeamContactsAvailable) {
-			await updateOwnContactPublicKey('');
-			this.reloadKeysFromStorage();
-		}
-	} else {
-		needToDeleteFromStorage = true;
 	}
-	if (needToDeleteFromStorage) {
-		try {
-			this.oKeyring[openPgpKey.isPrivate() ? 'privateKeys' : 'publicKeys'].removeForId(openPgpKey.getFingerprint());
-			await this.oKeyring.store();
-			this.reloadKeysFromStorage();
-		} catch (e) {
-			result.addExceptionMessage(e, Enums.OpenPgpErrors.DeleteError);
-		}
+
+	return result;
+};
+
+/**
+ * @param {COpenPgpKey} openPgpKey
+ */
+COpenPgp.prototype.removeKeyFromThisDevice = async function (openPgpKey)
+{
+	const result = new COpenPgpResult();
+	if (!openPgpKey) {
+		return result.addError(Enums.OpenPgpErrors.InvalidArgumentError);
+	}
+
+	try {
+		this.oKeyring[openPgpKey.isPrivate() ? 'privateKeys' : 'publicKeys'].removeForId(openPgpKey.getFingerprint());
+		await this.oKeyring.store();
+		this.reloadKeysFromStorage();
+	} catch (e) {
+		result.addExceptionMessage(e, Enums.OpenPgpErrors.DeleteError);
 	}
 
 	return result;

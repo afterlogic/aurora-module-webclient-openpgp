@@ -57,11 +57,6 @@ COpenPgpKey.prototype.userName = '';
 COpenPgpKey.prototype.isFromContacts = false;
 
 /**
- * @type {boolean}
- */
-COpenPgpKey.prototype.isExternal = false;
-
-/**
  * @return {string}
  */
 COpenPgpKey.prototype.getId = function ()

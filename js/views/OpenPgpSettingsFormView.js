@@ -34,35 +34,14 @@ function COpenPgpSettingsFormView()
 		this.keys(OpenPgp.getKeys());
 	}, this);
 
-	this.publicKeys = ko.computed(function () {
-		var
-			aPublicKeys = _.filter(this.keys(), function (oKey) {
-				return oKey.isPublic() && !oKey.isExternal;
-			})
-		;
-		return _.map(aPublicKeys, function (oKey) {
-			return {'user': oKey.getUser(), 'armor': oKey.getArmor(), 'key': oKey, 'private': false};
-		});
+	this.publicKeysFromThisDevice = ko.computed(function () {
+		return this.keys().filter(key  => !key.isFromContacts && key.isPublic());
 	}, this);
-	this.privateKeys = ko.computed(function () {
-		var
-			aPrivateKeys = _.filter(this.keys(), function (oKey) {
-				return oKey.isPrivate()&&!oKey.isExternal;
-			})
-		;
-		return  _.map(aPrivateKeys, function (oKey) {
-			return {'user': oKey.getUser(), 'armor': oKey.getArmor(), 'key': oKey};
-		});
+	this.privateKeysFromThisDevice = ko.computed(function () {
+		return this.keys().filter(key  => !key.isFromContacts && key.isPrivate());
 	}, this);
-	this.externalPublicKeys = ko.computed(function () {
-		var
-			aPublicKeys = _.filter(this.keys(), function (oKey) {
-				return oKey.isPublic() && oKey.isExternal;
-			})
-		;
-		return _.map(aPublicKeys, function (oKey) {
-			return {'user': oKey.getUser(), 'armor': oKey.getArmor(), 'key': oKey, 'private': false};
-		});
+	this.keysFromPersonalContacts = ko.computed(function () {
+		return this.keys().filter(key  => key.isFromContacts);
 	}, this);
 
 	this.oPgpKeyControlsView = ModulesManager.run('OpenPgpWebclient', 'getPgpKeyControlsView');
@@ -75,7 +54,7 @@ COpenPgpSettingsFormView.prototype.ViewTemplate = '%ModuleName%_OpenPgpSettingsF
 COpenPgpSettingsFormView.prototype.exportAllPublicKeys = function ()
 {
 	var
-		aArmors = _.map(_.union(this.publicKeys(), this.externalPublicKeys()), function (oKey) {
+		aArmors = _.map(_.union(this.publicKeysFromThisDevice(), this.keysFromPersonalContacts()), function (oKey) {
 			return oKey.armor;
 		})
 	;
@@ -96,24 +75,17 @@ COpenPgpSettingsFormView.prototype.generateNewKey = function ()
 	Popups.showPopup(GenerateKeyPopup);
 };
 
-/**
- * @param {Object} key
- */
-COpenPgpSettingsFormView.prototype.removeOpenPgpKey = function (key)
+COpenPgpSettingsFormView.prototype.removeKeyFromContacts = function (key)
 {
-	this.oPgpKeyControlsView.removeOpenPgpKey(key);
+	this.oPgpKeyControlsView.removeKeyFromContacts(key);
 };
 
 /**
- * @param {Object} oKey
+ * @param {Object} key
  */
-COpenPgpSettingsFormView.prototype.verifyPassword = function (oKey)
+COpenPgpSettingsFormView.prototype.removeKeyFromThisDevice = function (key)
 {
-	var fShowArmor = function () {
-		this.showArmor(oKey);
-	}.bind(this);
-
-	Popups.showPopup(VerifyPasswordPopup, [oKey, fShowArmor]);
+	this.oPgpKeyControlsView.removeKeyFromThisDevice(key);
 };
 
 /**
@@ -121,7 +93,11 @@ COpenPgpSettingsFormView.prototype.verifyPassword = function (oKey)
  */
 COpenPgpSettingsFormView.prototype.showArmor = function (key)
 {
-	this.oPgpKeyControlsView.showArmor(key);
+	if (key.isPublic()) {
+		this.oPgpKeyControlsView.showArmor(key);
+	} else {
+		Popups.showPopup(VerifyPasswordPopup, [key, () => { this.oPgpKeyControlsView.showArmor(key); }]);
+	}
 };
 
 COpenPgpSettingsFormView.prototype.getCurrentValues = function ()

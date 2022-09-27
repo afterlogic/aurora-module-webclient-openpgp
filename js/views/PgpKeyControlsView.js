@@ -43,23 +43,31 @@ CPgpKeyControlsView.prototype.setAfterRemoveContactKeyHandler = function (afterR
 	this.afterRemoveContactKeyHandler = typeof afterRemoveContactKeyHandler === 'function' ? afterRemoveContactKeyHandler : () => {};
 };
 
-CPgpKeyControlsView.prototype.removeOpenPgpKey = async function (key, email, uuid)
+CPgpKeyControlsView.prototype.removeKeyFromContacts = async function (key, email, uuid)
+{
+	this.removeKey(key, email, uuid, 'removeKeyFromContacts');
+};
+
+CPgpKeyControlsView.prototype.removeKeyFromThisDevice = async function (key, email, uuid)
+{
+	this.removeKey(key, email, uuid, 'removeKeyFromThisDevice');
+};
+
+CPgpKeyControlsView.prototype.removeKey = async function (key, email, uuid, removeMethodName)
 {
 	const preparedKey = await prepareKey(key, email, uuid);
-	if (preparedKey) {
-		const removeHandler = async isRemoveConfirmed => {
-			if (isRemoveConfirmed) {
-				const deleteKeyResult = await OpenPgp.deleteKey(preparedKey);
-				if (!deleteKeyResult.result) {
-					Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_DELETE_KEY'));
-				} else {
-					this.afterRemoveContactKeyHandler();
-				}
+	const removeHandler = async isRemoveConfirmed => {
+		if (isRemoveConfirmed) {
+			const removeKeyResult = await OpenPgp[removeMethodName](preparedKey);
+			if (!removeKeyResult.result) {
+				Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_DELETE_KEY'));
+			} else {
+				this.afterRemoveContactKeyHandler();
 			}
-		};
-		const confirmText = TextUtils.i18n('%MODULENAME%/CONFIRM_DELETE_KEY', {'KEYEMAIL': preparedKey.getEmail()});
-		Popups.showPopup(ConfirmPopup, [confirmText, removeHandler]);
-	}
+		}
+	};
+	const confirmText = TextUtils.i18n('%MODULENAME%/CONFIRM_DELETE_KEY', {'KEYEMAIL': preparedKey.getEmail()});
+	Popups.showPopup(ConfirmPopup, [confirmText, removeHandler]);
 };
 
 module.exports = new CPgpKeyControlsView();
