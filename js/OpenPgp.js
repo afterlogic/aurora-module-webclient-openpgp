@@ -104,9 +104,9 @@ async function getOwnPublicKeyFromTeamContacts ()
 				;
 				if (Array.isArray(armors)) {
 					const openPgpKeys = await getKeysFromArmors(armors);
-					resolve(openPgpKeys.length > 0 ? openPgpKeys[0] : null);
+					resolve(openPgpKeys.length > 0 && openPgpKeys[0] || false);
 				} else {
-					resolve(null);
+					resolve(false);
 				}
 			};
 			Ajax.send('%ModuleName%', 'GetOwnContactPublicKey', {}, responseHandler);

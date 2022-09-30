@@ -16,15 +16,21 @@
 				<span class="controls">
 					<span class="button subscribe subscribed"
 						  data-bind="customTooltip: '%MODULENAME%/ACTION_VIEW_KEY',
-						  click: function () { $parent.showArmor($data); }"
+						  click: function () { $parent.showArmor(key); }"
 					></span>
 					<span class="button delete"
 						  data-bind="customTooltip: '%MODULENAME%/ACTION_DELETE_KEY',
-						  click: function () { $parent.removeKeyFromThisDevice($data); }"
+						  click: function () { $parent.removeKeyFromThisDevice(key); }"
 					></span>
 				</span>
 				<span class="name">
-					<span class="text" data-bind="text: $data.getUser()"></span>
+					<span class="text" data-bind="text: user"></span>
+				</span>
+				<span class="buttons" style="margin-left: 6px;" data-bind="visible: isOwn && $parent.noOwnKeyInTeamContacts()">
+					<span class="button"
+						  data-bind="i18n: {'key': '%MODULENAME%/ACTION_SAVE_KEY_TO_MY_TEAM_CONTACT'},
+						  click: function () { $parent.saveOwnKeyToTeamContact(key); }"
+					></span>
 				</span>
 			</span>
 		</div>
@@ -41,15 +47,15 @@
 				<span class="controls">
 					<span class="button subscribe subscribed"
 						  data-bind="customTooltip: '%MODULENAME%/ACTION_VIEW_KEY',
-						  click: function () { $parent.showArmor($data); }"
+						  click: function () { $parent.showArmor(key); }"
 					></span>
 					<span class="button delete"
 						  data-bind="customTooltip: '%MODULENAME%/ACTION_DELETE_KEY',
-						  click: function () { $parent.removeKeyFromThisDevice($data); }"
+						  click: function () { $parent.removeKeyFromThisDevice(key); }"
 					></span>
 				</span>
 				<span class="name">
-					<span class="text" data-bind="text: $data.getUser()"></span>
+					<span class="text" data-bind="text: user"></span>
 				</span>
 			</span>
 		</div>

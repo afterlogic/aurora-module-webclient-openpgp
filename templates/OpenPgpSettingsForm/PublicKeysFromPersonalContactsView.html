@@ -15,15 +15,15 @@
 				<span class="controls">
 					<span class="button subscribe subscribed"
 						  data-bind="customTooltip: '%MODULENAME%/ACTION_VIEW_KEY',
-						  click: function () { $parent.showArmor($data); }"
+						  click: function () { $parent.showArmor(key); }"
 					></span>
 					<span class="button delete"
 						  data-bind="customTooltip: '%MODULENAME%/ACTION_DELETE_KEY',
-						  click: function () { $parent.removeKeyFromContacts($data); }"
+						  click: function () { $parent.removeKeyFromContacts(key); }"
 					></span>
 				</span>
 				<span class="name">
-					<span class="text" data-bind="text: $data.getUser()"></span>
+					<span class="text" data-bind="text: user"></span>
 				</span>
 			</span>
 		</div>

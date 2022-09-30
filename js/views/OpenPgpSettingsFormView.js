@@ -4,18 +4,25 @@ const
 	_ = require('underscore'),
 	ko = require('knockout'),
 
+	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
+
+	App = require('%PathToCoreWebclientModule%/js/App.js'),
 	ModulesManager = require('%PathToCoreWebclientModule%/js/ModulesManager.js'),
+	Popups = require('%PathToCoreWebclientModule%/js/Popups.js'),
+	Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
 
 	CAbstractSettingsFormView = ModulesManager.run('SettingsWebclient', 'getAbstractSettingsFormViewClass'),
 
-	Popups = require('%PathToCoreWebclientModule%/js/Popups.js'),
+	ErrorsUtils = require('modules/%ModuleName%/js/utils/Errors.js'),
+
 	GenerateKeyPopup = require('modules/%ModuleName%/js/popups/GenerateKeyPopup.js'),
 	ImportKeyPopup = require('modules/%ModuleName%/js/popups/ImportKeyPopup.js'),
+	OpenPgp = require('modules/%ModuleName%/js/OpenPgp.js'),
+	Settings = require('modules/%ModuleName%/js/Settings.js'),
 	ShowPublicKeysArmorPopup = require('modules/%ModuleName%/js/popups/ShowPublicKeysArmorPopup.js'),
 	VerifyPasswordPopup = require('modules/%ModuleName%/js/popups/VerifyPasswordPopup.js'),
 
-	OpenPgp = require('modules/%ModuleName%/js/OpenPgp.js'),
-	Settings = require('modules/%ModuleName%/js/Settings.js')
+	isTeamContactsAvailable = ModulesManager.isModuleAvailable('TeamContacts')
 ;
 
 /**
@@ -34,14 +41,34 @@ function COpenPgpSettingsFormView()
 		this.keys(OpenPgp.getKeys());
 	}, this);
 
+	this.noOwnKeyInTeamContacts = ko.computed(() => {
+		return OpenPgp.ownKeyFromTeamContacts() === false;
+	});
+
 	this.publicKeysFromThisDevice = ko.computed(function () {
-		return this.keys().filter(key  => !key.isFromContacts && key.isPublic());
+		return this.keys()
+				.filter(key => !key.isFromContacts && key.isPublic())
+				.map(key => ({
+					key,
+					user: key.getUser(),
+					isOwn: isTeamContactsAvailable && key.getEmail() === App.getUserPublicId()
+				}));
 	}, this);
 	this.privateKeysFromThisDevice = ko.computed(function () {
-		return this.keys().filter(key  => !key.isFromContacts && key.isPrivate());
+		return this.keys()
+				.filter(key  => !key.isFromContacts && key.isPrivate())
+				.map(key => ({
+					key,
+					user: key.getUser()
+				}));
 	}, this);
 	this.keysFromPersonalContacts = ko.computed(function () {
-		return this.keys().filter(key  => key.isFromContacts);
+		return this.keys()
+				.filter(key  => key.isFromContacts)
+				.map(key => ({
+					key,
+					user: key.getUser()
+				}));
 	}, this);
 
 	this.oPgpKeyControlsView = ModulesManager.run('OpenPgpWebclient', 'getPgpKeyControlsView');
@@ -51,17 +78,26 @@ _.extendOwn(COpenPgpSettingsFormView.prototype, CAbstractSettingsFormView.protot
 
 COpenPgpSettingsFormView.prototype.ViewTemplate = '%ModuleName%_OpenPgpSettingsFormView';
 
+COpenPgpSettingsFormView.prototype.saveOwnKeyToTeamContact = async function (key) {
+	const armor = key.getArmor();
+	const res = await OpenPgp.addKeyToContact(armor, true);
+	if (res && res.result) {
+		Screens.showReport(TextUtils.i18n('%MODULENAME%/REPORT_KEY_SUCCESSFULLY_IMPORTED_PLURAL', {}, null, 1));
+	} else {
+		ErrorsUtils.showPgpErrorByCode(res, Enums.PgpAction.Import, TextUtils.i18n('%MODULENAME%/ERROR_IMPORT_KEY'));
+	}
+};
+
 COpenPgpSettingsFormView.prototype.exportAllPublicKeys = function ()
 {
-	var
-		aArmors = _.map(_.union(this.publicKeysFromThisDevice(), this.keysFromPersonalContacts()), function (oKey) {
-			return oKey.armor;
+	const
+		armors = _.map(_.union(this.publicKeysFromThisDevice(), this.keysFromPersonalContacts()), function (keyData) {
+			return keyData.key.getArmor();
 		})
 	;
 
-	if (aArmors.length > 0)
-	{
-		Popups.showPopup(ShowPublicKeysArmorPopup, [aArmors.join('\n')]);
+	if (armors.length > 0) {
+		Popups.showPopup(ShowPublicKeysArmorPopup, [armors.join('\n')]);
 	}
 };
 
