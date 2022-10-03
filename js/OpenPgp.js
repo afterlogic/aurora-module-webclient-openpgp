@@ -631,10 +631,7 @@ COpenPgp.prototype.getArmorInfo = async function (sArmor)
 
 				iCount++;
 			}
-			catch (e)
-			{
-				aResult.push(null);
-			}
+			catch (e) {}
 		}
 		else if ('PUBLIC' === aData[0])
 		{
@@ -648,10 +645,7 @@ COpenPgp.prototype.getArmorInfo = async function (sArmor)
 
 				iCount++;
 			}
-			catch (e)
-			{
-				aResult.push(null);
-			}
+			catch (e) {}
 		}
 	}
 

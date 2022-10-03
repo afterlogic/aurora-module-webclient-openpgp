@@ -1,14 +1,19 @@
 <div class="headline"
 	 data-bind="i18n: {'key': '%MODULENAME%/INFO_TEXT_CONTAINS_PUBLIC_KEYS_WITH_EMAIL'},
-	 visible: keysToImport().length > 0 && allowOnlyPublicKeyForEmail() !== ''"
+	 visible: keysForContact().length > 0 && allowOnlyPublicKeyForEmail() !== ''"
 ></div>
-<div data-bind="foreach: keysToImport">
+<div data-bind="foreach: keysForContact">
 	<div class="key_item">
-		<label data-bind="css: {'checked': needToImport}" class="custom_checkbox checked">
+		<label class="custom_radio"
+			   data-bind="css: {'checked': $parent.selectedKeyForContact() === id},
+			   style: { visibility: $parent.keysForContact().length === 1 ? 'hidden' : '' }"
+		>
 			<span class="icon"></span>
-			<input type="checkbox" data-bind="checked: needToImport, attr: {'id': 'need_to_import_' + id}">
+			<input type="radio" data-bind="checked: $parent.selectedKeyForContact,
+				   attr: {'value': id, 'id': `key_for_contact_${id}`}" name="key_for_contact"
+			/>
 		</label>
-		<label data-bind="attr: {'for': 'need_to_import_' + id}">
+		<label data-bind="attr: {'for': `key_for_contact_${id}`}">
 			<span class="key_email" data-bind="text: email"></span>
 			<span data-bind="text: addInfo"></span>
 			<span data-bind="text: '(external)', visible: isExternal"></span>
@@ -17,11 +22,26 @@
 </div>
 
 <div class="headline"
-	 data-bind="text: disabledForContactHeading, visible: keysDisabledToImport().length > 0"
+	 data-bind="text: disabledForContactHeading, visible: keysNotForContact().length > 0"
 ></div>
-<div data-bind="foreach: keysDisabledToImport">
+<div data-bind="foreach: keysNotForContact">
 	<div class="key_item disabled">
 		<label>
+			<span class="key_email" data-bind="text: email"></span>
+			<span data-bind="text: addInfo"></span>
+			<span data-bind="text: '(external)', visible: isExternal"></span>
+		</label>
+	</div>
+</div>
+
+<!-- The following keys will not be imported -->
+<div class="headline"
+	 data-bind="i18n: {'key': '%MODULENAME%/INFO_TEXT_CONTAINS_KEYS_WITH_NO_EMAIL'},
+	 visible: keysBroken().length > 0"
+></div>
+<div data-bind="foreach: keysBroken">
+	<div class="key_item disabled">
+		<label style="color: red;">
 			<span class="key_email" data-bind="text: email"></span>
 			<span data-bind="text: addInfo"></span>
 			<span data-bind="text: '(external)', visible: isExternal"></span>

@@ -27,16 +27,30 @@ function CImportKeyPopup()
 	this.keyArmor = ko.observable('');
 	this.keyArmorFocused = ko.observable(false);
 
-	this.keysBroken = ko.observableArray([]);
-	this.keysAlreadyThere = ko.observableArray([]);
+	this.keysOwn = ko.observableArray([]);
+	this.keysPublicExternal = ko.observableArray([]);
 	this.keysPrivateExternal = ko.observableArray([]);
-	this.keysToImport = ko.observableArray([]);
-	this.keysDisabledToImport = ko.observableArray([]);
+	this.keysAlreadyThere = ko.observableArray([]);
+
+	this.keysForContact = ko.observableArray([]);
+	this.keysNotForContact = ko.observableArray([]);
+	this.selectedKeyForContact = ko.observable('');
+
+	this.keysBroken = ko.observableArray([]);
+
 	this.keysChecked = ko.observable(false);
 
 	this.allowOnlyPublicKeyForEmail = ko.observable('');
 	this.fOnSuccessCallback = null;
 	
+	this.visibleImportKeysButton = ko.computed(() => {
+		if (this.allowOnlyPublicKeyForEmail() === '') {
+			return this.keysOwn().length > 0 || this.keysPublicExternal().length > 0;
+		} else {
+			return this.keysForContact().length > 0;
+		}
+	});
+
 	this.disabledForContactHeading = ko.computed(function () {
 		const langConst = '%MODULENAME%/INFO_TEXT_CONTAINS_NOT_PUBLIC_KEYS_OR_WITHOUT_EMAIL';
 		return TextUtils.i18n(langConst, {'EMAIL': this.allowOnlyPublicKeyForEmail()});
@@ -51,6 +65,7 @@ CImportKeyPopup.prototype.PopupTemplate = '%ModuleName%_ImportKeyPopup';
  * @param {string} armor
  * @param {function} onSuccessCallback
  * @param {string} allowOnlyPublicKeyForEmail
+ * @param {boolean} isOwnContact
  */
 CImportKeyPopup.prototype.onOpen = function ({ armor = '', onSuccessCallback = () => {},
 	allowOnlyPublicKeyForEmail = '', isOwnContact = false })
@@ -58,10 +73,16 @@ CImportKeyPopup.prototype.onOpen = function ({ armor = '', onSuccessCallback = (
 	this.keyArmor(armor);
 	this.keyArmorFocused(true);
 
-	this.keysBroken([]);
-	this.keysAlreadyThere([]);
+	this.keysOwn([]);
+	this.keysPublicExternal([]);
 	this.keysPrivateExternal([]);
-	this.keysToImport([]);
+	this.keysAlreadyThere([]);
+
+	this.keysForContact([]);
+	this.keysNotForContact([]);
+
+	this.keysBroken([]);
+
 	this.keysChecked(false);
 
 	this.allowOnlyPublicKeyForEmail(allowOnlyPublicKeyForEmail);
@@ -76,119 +97,150 @@ CImportKeyPopup.prototype.onOpen = function ({ armor = '', onSuccessCallback = (
 
 CImportKeyPopup.prototype.checkArmor = async function ()
 {
-	var
-		aRes = null,
-		aKeysBroken = [],
-		aKeysAlreadyThere = [],
-		aKeysPrivateExternal = [],
-		keysDisabledToImport = [],
-		aKeysToImport = []
+	if (this.keyArmor() === '') {
+		this.keyArmorFocused(true);
+		return;
+	}
+
+	const keys = await OpenPgp.getArmorInfo(this.keyArmor());
+	if (Types.isNonEmptyArray(keys)) {
+		if (this.allowOnlyPublicKeyForEmail() === '') {
+			this.checkArmorForSettings(keys);
+		} else {
+			this.checkArmorForContact(keys);
+		}
+		this.keysChecked(true);
+	} else {
+		Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_IMPORT_NO_KEY_FOUND'));
+	}
+};
+
+function getKeyData(key) {
+	const
+		hasNoEmail = !AddressUtils.isCorrectEmail(key.getEmail()),
+		hasSameKey = OpenPgp.findKeysByEmails([key.getEmail()], key.isPublic()).length > 0,
+		isOwnKey = OpenPgp.isOwnEmail(key.getEmail()),
+		addInfoLangKey = key.isPublic() ? '%MODULENAME%/INFO_PUBLIC_KEY_LENGTH' : '%MODULENAME%/INFO_PRIVATE_KEY_LENGTH'
+	;
+	return {
+		'armor': key.getArmor(),
+		'email': key.user,
+		'id': `${key.getId()}_${key.isPublic() ? 'public': 'private'}`,
+		'addInfo': TextUtils.i18n(addInfoLangKey, {'LENGTH': key.getBitSize()}),
+		'needToImport': ko.observable(!hasSameKey && !hasNoEmail),
+		'isExternal': !isOwnKey
+	};
+}
+
+CImportKeyPopup.prototype.checkArmorForSettings = function (keys)
+{
+	const
+		keysOwn = [],
+		keysPublicExternal = [],
+		keysPrivateExternal = [],
+		keysAlreadyThere = [],
+		keysBroken = []
 	;
 
-	if (this.keyArmor() === '')
-	{
-		this.keyArmorFocused(true);
+	keys.forEach(key => {
+		const
+			hasNoEmail = !AddressUtils.isCorrectEmail(key.getEmail()),
+			hasSameKey = OpenPgp.findKeysByEmails([key.getEmail()], key.isPublic()).length > 0,
+			isOwnKey = OpenPgp.isOwnEmail(key.getEmail()),
+			keyData = getKeyData(key)
+		;
+		if (hasNoEmail) {
+			keysBroken.push(keyData);
+		} else if (hasSameKey) {
+			keysAlreadyThere.push(keyData);
+		} else if (isOwnKey) {
+			keysOwn.push(keyData);
+		} else {
+			if (key.isPublic()) {
+				keysPublicExternal.push(keyData);
+			} else {
+				keysPrivateExternal.push(keyData);
+			}
+		}
+	});
+
+	this.keysBroken(keysBroken);
+	this.keysAlreadyThere(keysAlreadyThere);
+	this.keysOwn(keysOwn);
+	this.keysPublicExternal(keysPublicExternal);
+	this.keysPrivateExternal(keysPrivateExternal);
+};
+
+CImportKeyPopup.prototype.checkArmorForContact = function (keys)
+{
+	const
+		keysBroken = [],
+		keysNotForContact = [],
+		keysForContact = []
+	;
+
+	keys.forEach(key => {
+		const
+			hasNoEmail = !AddressUtils.isCorrectEmail(key.getEmail()),
+			keyData = getKeyData(key)
+		;
+		if (hasNoEmail) {
+			keysBroken.push(keyData);
+		} else if (this.allowOnlyPublicKeyForEmail() === key.getEmail() && key.isPublic()) {
+			keysForContact.push(keyData);
+		} else {
+			keysNotForContact.push(keyData);
+		}
+	});
+	this.keysBroken(keysBroken);
+	this.keysNotForContact(keysNotForContact);
+	this.keysForContact(keysForContact);
+	if (keysForContact.length > 0) {
+		this.selectedKeyForContact(keysForContact[0].id);
 	}
-	else
-	{
-		aRes = await OpenPgp.getArmorInfo(this.keyArmor());
+};
 
-		if (Types.isNonEmptyArray(aRes))
-		{
-			_.each(aRes, oKey => {
-				if (oKey)
-				{
-					var
-						aSameKeys = OpenPgp.findKeysByEmails([oKey.getEmail()], oKey.isPublic()),
-						bHasSameKey = aSameKeys.length > 0,
-						sAddInfoLangKey = oKey.isPublic() ? '%MODULENAME%/INFO_PUBLIC_KEY_LENGTH' : '%MODULENAME%/INFO_PRIVATE_KEY_LENGTH',
-						bNoEmail = !AddressUtils.isCorrectEmail(oKey.getEmail())
-					;
-					var oKeyData = {
-						'armor': oKey.getArmor(),
-						'email': oKey.user,
-						'id': `${oKey.getId()}_${oKey.isPublic() ? 'public': 'private'}`,
-						'addInfo': TextUtils.i18n(sAddInfoLangKey, {'LENGTH': oKey.getBitSize()}),
-						'needToImport': ko.observable(!bHasSameKey && !bNoEmail),
-						'isExternal': !OpenPgp.isOwnEmail(oKey.getEmail())
-					};
-
-					if (bNoEmail) {
-						aKeysBroken.push(oKeyData);
-					} else if (!oKey.isPublic() && !OpenPgp.isOwnEmail(oKey.getEmail())) {
-						aKeysPrivateExternal.push(oKeyData);
-					} else if (this.allowOnlyPublicKeyForEmail() === oKey.getEmail() && oKey.isPublic()) {
-						aKeysToImport.push(oKeyData);
-					} else if (this.allowOnlyPublicKeyForEmail() !== '' &&
-							(this.allowOnlyPublicKeyForEmail() !== oKey.getEmail() || !oKey.isPublic())
-					) {
-						keysDisabledToImport.push(oKeyData);
-					} else if (bHasSameKey) {
-						aKeysAlreadyThere.push(oKeyData);
-					} else {
-						aKeysToImport.push(oKeyData);
-					}
-				}
-			});
-		}
-
-		if (aKeysBroken.length > 0 || aKeysAlreadyThere.length > 0 || aKeysPrivateExternal.length > 0 ||
-				keysDisabledToImport.length > 0 || aKeysToImport.length > 0
-		) {
-			this.keysBroken(aKeysBroken);
-			this.keysAlreadyThere(aKeysAlreadyThere);
-			this.keysPrivateExternal(aKeysPrivateExternal);
-			this.keysDisabledToImport(keysDisabledToImport);
-			this.keysToImport(aKeysToImport);
-			this.keysChecked(true);
-		}
-		else
-		{
-			Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_IMPORT_NO_KEY_FOUND'));
-		}
+CImportKeyPopup.prototype.getKeysDataForImport = function ()
+{
+	if (this.allowOnlyPublicKeyForEmail() !== '') {
+		return this.keysForContact()
+				.filter(keyData => keyData.id === this.selectedKeyForContact());
+	} else {
+		[...this.keysOwn(), ...this.keysPublicExternal()]
+				.filter(keyData => keyData.needToImport());
 	}
 };
 
 CImportKeyPopup.prototype.importKey = async function ()
 {
-	var
-		oRes = null,
-		aArmors = []
+	const
+		addKeyToContact = this.allowOnlyPublicKeyForEmail() !== '',
+		armors = this.getKeysDataForImport().map(keyData => keyData.armor)
 	;
 
-	_.each(this.keysToImport(), oSimpleKey => {
-		if (oSimpleKey.needToImport())
-		{
-			aArmors.push(oSimpleKey.armor);
-		}
-	});
-
-	if (aArmors.length > 0)
-	{
-		if (this.allowOnlyPublicKeyForEmail() !== '' && aArmors.length === 1) {
-			oRes = await OpenPgp.addKeyToContact(aArmors[0], this.isOwnContact);
+	if (armors.length > 0) {
+		let res = null;
+		if (addKeyToContact) {
+			res = await OpenPgp.addKeyToContact(armors[0], this.isOwnContact);
 		} else {
-			oRes = await OpenPgp.importKeys(aArmors.join(''));
+			res = await OpenPgp.importKeys(armors.join(''));
 		}
 
-		if (oRes && oRes.result)
-		{
-			Screens.showReport(TextUtils.i18n('%MODULENAME%/REPORT_KEY_SUCCESSFULLY_IMPORTED_PLURAL', {}, null, aArmors.length));
-			if (_.isFunction(this.fOnSuccessCallback))
-			{
-				this.fOnSuccessCallback(aArmors[0]);
+		if (res && res.result) {
+			Screens.showReport(TextUtils.i18n('%MODULENAME%/REPORT_KEY_SUCCESSFULLY_IMPORTED_PLURAL', {}, null, armors.length));
+			if (_.isFunction(this.fOnSuccessCallback)) {
+				this.fOnSuccessCallback(armors[0]);
+			}
+		} else {
+			if (res) {
+				ErrorsUtils.showPgpErrorByCode(res, Enums.PgpAction.Import, TextUtils.i18n('%MODULENAME%/ERROR_IMPORT_KEY'));
+			} else {
+				Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_IMPORT_KEY'));
 			}
 		}
 
-		if (oRes && !oRes.result)
-		{
-			ErrorsUtils.showPgpErrorByCode(oRes, Enums.PgpAction.Import, TextUtils.i18n('%MODULENAME%/ERROR_IMPORT_KEY'));
-		}
-
 		this.closePopup();
-	}
-	else
-	{
+	} else {
 		Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_IMPORT_NO_KEY_SELECTED'));
 	}
 };
