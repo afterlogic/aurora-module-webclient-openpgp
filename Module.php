@@ -23,24 +23,6 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 {
 	public function init()
 	{
-		\Aurora\Modules\Core\Classes\User::extend(
-			self::GetName(),
-			[
-				'EnableModule'			=> ['bool', false],
-				'RememberPassphrase'	=> ['bool', false]
-			]
-		);
-
-		\Aurora\Modules\Contacts\Classes\Contact::extend(
-			self::GetName(),
-			[
-				'PgpKey' => ['text', null],
-				'PgpEncryptMessages' => ['bool', false],
-				'PgpSignMessages' => ['bool', false],
-			]
-
-		);
-
 		$this->subscribeEvent('Files::PopulateFileItem::after', array($this, 'onAfterPopulateFileItem'));
 		$this->subscribeEvent('Mail::GetBodyStructureParts', array($this, 'onGetBodyStructureParts'));
 		$this->subscribeEvent('Mail::ExtendMessageData', array($this, 'onExtendMessageData'));
