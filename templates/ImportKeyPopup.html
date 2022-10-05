@@ -11,13 +11,17 @@
 				></textarea>
 			</div>
 
-			<div class="row import_pgp_key_area" data-bind="visible: keysChecked">
-				<!-- ko if: allowOnlyPublicKeyForEmail() === '' -->
-					<!-- ko template: '%ModuleName%_ImportKeyPopup_StandardView' --><!-- /ko -->
-				<!-- /ko -->
-				<!-- ko if: allowOnlyPublicKeyForEmail() !== '' -->
-					<!-- ko template: '%ModuleName%_ImportKeyPopup_ToContactsView' --><!-- /ko -->
-				<!-- /ko -->
+			<div class="row import_pgp_key_area"
+				 data-bind="visible: keysChecked, customScrollbar: {x: false}"
+			>
+				<div class="scroll-inner">
+					<!-- ko if: allowOnlyPublicKeyForEmail() === '' -->
+						<!-- ko template: '%ModuleName%_ImportKeyPopup_StandardView' --><!-- /ko -->
+					<!-- /ko -->
+					<!-- ko if: allowOnlyPublicKeyForEmail() !== '' -->
+						<!-- ko template: '%ModuleName%_ImportKeyPopup_ToContactsView' --><!-- /ko -->
+					<!-- /ko -->
+				</div>
 			</div>
 
 			<div class="buttons">

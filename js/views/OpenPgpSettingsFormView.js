@@ -80,7 +80,7 @@ COpenPgpSettingsFormView.prototype.ViewTemplate = '%ModuleName%_OpenPgpSettingsF
 
 COpenPgpSettingsFormView.prototype.saveOwnKeyToTeamContact = async function (key) {
 	const armor = key.getArmor();
-	const res = await OpenPgp.addKeyToContact(armor, true);
+	const res = await OpenPgp.addKeyToContact(armor, '', true);
 	if (res && res.result) {
 		Screens.showReport(TextUtils.i18n('%MODULENAME%/REPORT_KEY_SUCCESSFULLY_IMPORTED_PLURAL', {}, null, 1));
 	} else {

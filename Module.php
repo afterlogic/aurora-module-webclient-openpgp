@@ -215,6 +215,27 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 		return false;
 	}
 
+	public function AddPublicKeyToContactWithUUID($UserId, $UUID, $Key)
+	{
+		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+
+		$contact = \Aurora\Modules\Contacts\Module::Decorator()->GetContact($UUID, $UserId);
+		if ($contact instanceof Contact) {
+			$isPersonalContact = $contact->Storage === \Aurora\Modules\Contacts\Enums\StorageType::Personal;
+			$isTeamContact = $contact->Storage === \Aurora\Modules\Contacts\Enums\StorageType::Team;
+			$isItOwnContact = isset($contact->ExtendedInformation['ItsMe']) && $contact->ExtendedInformation['ItsMe'] === true;
+			$isReadOnly = isset($contact->ExtendedInformation['ReadOnly']) && $contact->ExtendedInformation['ReadOnly'] === true;
+			if ($isPersonalContact || $isTeamContact && ($isItOwnContact || !$isReadOnly)) {
+				$contact->setExtendedProp($this->GetName() . '::PgpKey', $Key);
+				return \Aurora\Modules\Contacts\Module::Decorator()->UpdateContactObject($contact);
+			} else {
+				throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+			}
+		}
+
+		return false;
+	}
+
 	public function AddPublicKeyToContact($UserId, $Email, $Key, $UserName = '')
 	{
 		\Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);

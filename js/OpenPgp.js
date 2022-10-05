@@ -60,6 +60,21 @@ async function importExternalKeys (externalKeys)
 	return await addKeysPromise;
 }
 
+async function updateContactPublicKey (publicPgpKeyArmor, UUID)
+{
+	const updateOwnPublicKeyPromise = new Promise((resolve, reject) => {
+		const
+			parameters = {
+				UUID,
+				Key: publicPgpKeyArmor
+			},
+			responseHandler = response => resolve(response && response.Result)
+		;
+		Ajax.send('%ModuleName%', 'AddPublicKeyToContactWithUUID', parameters, responseHandler);
+	});
+	return await updateOwnPublicKeyPromise;
+}
+
 async function updateOwnContactPublicKey (publicPgpKeyArmor)
 {
 	const updateOwnPublicKeyPromise = new Promise((resolve, reject) => {
@@ -488,9 +503,11 @@ COpenPgp.prototype.isOwnEmail = function (sEmail)
 /**
  * Imports keys only to personal contatcs.
  * @param {string} armor
+ * @param {string} contactUUID
+ * @param {boolean} isOwnContact
  * @return {COpenPgpResult}
  */
-COpenPgp.prototype.addKeyToContact = async function (armor, isOwnContact)
+COpenPgp.prototype.addKeyToContact = async function (armor, contactUUID = '', isOwnContact = false)
 {
 	armor = $.trim(armor);
 	const importResult = new COpenPgpResult();
@@ -507,16 +524,17 @@ COpenPgp.prototype.addKeyToContact = async function (armor, isOwnContact)
 		const armorData = armorsData[0];
 		const publicKey = await openpgp.key.readArmored(armorData[1]);
 		if (publicKey && !publicKey.err && publicKey.keys && publicKey.keys[0]) {
-			const
-				openPgpKey = new COpenPgpKey(publicKey.keys[0]),
-				keyEmail = openPgpKey.getEmail()
-			;
-			if (isOwnContact && keyEmail === App.getUserPublicId()) {
-				await updateOwnContactPublicKey(armorData[1]);
-			} else {
-				await importExternalKeys([openPgpKey]);
+			if (contactUUID) {
+				if (!(await updateContactPublicKey(armorData[1], contactUUID))) {
+					importResult.addError(Enums.OpenPgpErrors.ImportKeyError);
+				}
+				this.reloadKeysFromStorage();
+			} else if (isOwnContact) {
+				if (!(await updateOwnContactPublicKey(armorData[1]))) {
+					importResult.addError(Enums.OpenPgpErrors.ImportKeyError);
+				}
+				this.reloadKeysFromStorage();
 			}
-			this.reloadKeysFromStorage();
 		}
 	}
 
