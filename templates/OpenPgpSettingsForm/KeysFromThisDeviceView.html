@@ -26,10 +26,20 @@
 				<span class="name">
 					<span class="text" data-bind="text: user"></span>
 				</span>
-				<span class="buttons" style="margin-left: 6px;" data-bind="visible: isOwn && $parent.noOwnKeyInTeamContacts()">
-					<span class="button"
+				<span class="buttons" style="margin-left: 6px;" data-bind="visible: isOwn">
+					<span class="button contour_button"
 						  data-bind="i18n: {'key': '%MODULENAME%/ACTION_SAVE_KEY_TO_MY_TEAM_CONTACT'},
+						  visible: !hasOwnKeyFromTeamContacts,
 						  click: function () { $parent.saveOwnKeyToTeamContact(key); }"
+					></span>
+					<span class="button contour_button"
+						  data-bind="i18n: {'key': '%MODULENAME%/ACTION_UPDATE_KEY_IN_MY_TEAM_CONTACT'},
+						  visible: hasOwnKeyFromTeamContacts && !isSameKeyFromTeamContacts,
+						  click: function () { $parent.saveOwnKeyToTeamContact(key); }"
+					></span>
+					<span class="hint"
+						  data-bind="i18n: {'key': '%MODULENAME%/INFO_OWN_KEY_IS_ALREADY_IN_TEAM_CONTACT'},
+						  visible: hasOwnKeyFromTeamContacts && isSameKeyFromTeamContacts"
 					></span>
 				</span>
 			</span>

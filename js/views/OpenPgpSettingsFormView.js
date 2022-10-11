@@ -48,11 +48,21 @@ function COpenPgpSettingsFormView()
 	this.publicKeysFromThisDevice = ko.computed(function () {
 		return this.keys()
 				.filter(key => !key.isFromContacts && key.isPublic())
-				.map(key => ({
-					key,
-					user: key.getUser(),
-					isOwn: isTeamContactsAvailable && key.getEmail() === App.getUserPublicId()
-				}));
+				.map(key => {
+					const
+						isOwn = isTeamContactsAvailable && key.getEmail() === App.getUserPublicId(),
+						ownKeyFromTeamContacts = OpenPgp.ownKeyFromTeamContacts(),
+						isSameKeyFromTeamContacts = isOwn && ownKeyFromTeamContacts && key.getId() === ownKeyFromTeamContacts.getId()
+					;
+					console.log({keyId: key && key.getId(), ownKeyId: ownKeyFromTeamContacts && ownKeyFromTeamContacts.getId(), isSameKeyFromTeamContacts});
+					return {
+						key,
+						user: key.getUser(),
+						isOwn,
+						hasOwnKeyFromTeamContacts: !!ownKeyFromTeamContacts,
+						isSameKeyFromTeamContacts
+					};
+				});
 	}, this);
 	this.privateKeysFromThisDevice = ko.computed(function () {
 		return this.keys()
