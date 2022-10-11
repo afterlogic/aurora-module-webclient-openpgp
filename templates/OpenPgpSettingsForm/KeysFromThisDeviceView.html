@@ -4,6 +4,11 @@
 		   data-bind="i18n: {'key': '%MODULENAME%/LABEL_KEYS_FROM_THIS_DEVICE'}"
 		></b>
 	</div>
+	<div class="row" data-bind="{visible: bTeamContactsAvailable}">
+		<span class="value hint"
+		   _data-bind="i18n: {'key': '%MODULENAME%/LABEL_KEYS_FROM_THIS_DEVICE'}"
+		>PGP key related to the main account can be added to your contact in the team address book. This lets your teammates easily write an encrypted message to you without exchanging the keys manually.</span>
+	</div>
 	<div class="row keys_label">
 		<span class="label" data-bind="i18n: {'key': '%MODULENAME%/LABEL_PUBLIC_KEYS'}"></span>
 		<span class="value" data-bind="i18n: {'key': '%MODULENAME%/INFO_EMPTY_PUBLIC_KEYS'},

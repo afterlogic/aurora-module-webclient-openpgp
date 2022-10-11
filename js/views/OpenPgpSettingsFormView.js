@@ -32,6 +32,7 @@ function COpenPgpSettingsFormView()
 {
 	CAbstractSettingsFormView.call(this, Settings.ServerModuleName);
 
+	this.bTeamContactsAvailable = isTeamContactsAvailable;
 	this.enableOpenPgpInMail = ko.observable(Settings.enableOpenPgpInMail());
 	this.rememberPassphrase = Settings.rememberPassphrase;
 	this.isMailAvailable = ModulesManager.isModuleAvailable('Mail');
