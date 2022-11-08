@@ -55,7 +55,6 @@ function COpenPgpSettingsFormView()
 						ownKeyFromTeamContacts = OpenPgp.ownKeyFromTeamContacts(),
 						isSameKeyFromTeamContacts = isOwn && ownKeyFromTeamContacts && key.getId() === ownKeyFromTeamContacts.getId()
 					;
-					console.log({keyId: key && key.getId(), ownKeyId: ownKeyFromTeamContacts && ownKeyFromTeamContacts.getId(), isSameKeyFromTeamContacts});
 					return {
 						key,
 						user: key.getUser(),
