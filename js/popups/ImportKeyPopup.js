@@ -40,20 +40,22 @@ function CImportKeyPopup()
 
 	this.keysChecked = ko.observable(false);
 
-	this.allowOnlyPublicKeyForEmail = ko.observable('');
+	this.shouldAddToPersonalContact = ko.observable('');
+	this.contactEmail = ko.observable('');
+	this.contactUUID = '';
 	this.fOnSuccessCallback = null;
 	
 	this.visibleImportKeysButton = ko.computed(() => {
-		if (this.allowOnlyPublicKeyForEmail() === '') {
-			return this.keysOwn().length > 0 || this.keysPublicExternal().length > 0;
-		} else {
+		if (this.shouldAddToPersonalContact()) {
 			return this.keysForContact().length > 0;
+		} else {
+			return this.keysOwn().length > 0 || this.keysPublicExternal().length > 0;
 		}
 	});
 
 	this.disabledForContactHeading = ko.computed(function () {
 		const langConst = '%MODULENAME%/INFO_TEXT_CONTAINS_NOT_PUBLIC_KEYS_OR_WITHOUT_EMAIL';
-		return TextUtils.i18n(langConst, {'EMAIL': this.allowOnlyPublicKeyForEmail()});
+		return TextUtils.i18n(langConst, {'EMAIL': this.contactEmail()});
 	}, this);
 }
 
@@ -64,11 +66,12 @@ CImportKeyPopup.prototype.PopupTemplate = '%ModuleName%_ImportKeyPopup';
 /**
  * @param {string} armor
  * @param {function} onSuccessCallback
- * @param {string} allowOnlyPublicKeyForEmail
+ * @param {boolean} shouldAddToPersonalContact
+ * @param {string} contactEmail
  * @param {string} contactUUID
  */
 CImportKeyPopup.prototype.onOpen = function ({ armor = '', onSuccessCallback = () => {},
-	allowOnlyPublicKeyForEmail = '', contactUUID = '' })
+	shouldAddToPersonalContact = false, contactEmail = '', contactUUID = '' })
 {
 	this.keyArmor(armor);
 	this.keyArmorFocused(true);
@@ -85,7 +88,8 @@ CImportKeyPopup.prototype.onOpen = function ({ armor = '', onSuccessCallback = (
 
 	this.keysChecked(false);
 
-	this.allowOnlyPublicKeyForEmail(allowOnlyPublicKeyForEmail);
+	this.shouldAddToPersonalContact(shouldAddToPersonalContact);
+	this.contactEmail(contactEmail);
 	this.contactUUID = contactUUID;
 	this.fOnSuccessCallback = onSuccessCallback;
 
@@ -104,10 +108,10 @@ CImportKeyPopup.prototype.checkArmor = async function ()
 
 	const keys = await OpenPgp.getArmorInfo(this.keyArmor());
 	if (Types.isNonEmptyArray(keys)) {
-		if (this.allowOnlyPublicKeyForEmail() === '') {
-			this.checkArmorForSettings(keys);
-		} else {
+		if (this.shouldAddToPersonalContact()) {
 			this.checkArmorForContact(keys);
+		} else {
+			this.checkArmorForSettings(keys);
 		}
 		this.keysChecked(true);
 	} else {
@@ -186,7 +190,10 @@ CImportKeyPopup.prototype.checkArmorForContact = function (keys)
 		;
 		if (hasNoEmail) {
 			keysBroken.push(keyData);
-		} else if (this.allowOnlyPublicKeyForEmail() === key.getEmail() && key.isPublic()) {
+		} else if (
+			this.shouldAddToPersonalContact() && key.isPublic()
+			&& (key.getEmail() === this.contactEmail() || this.contactEmail() === '')
+		) {
 			keysForContact.push(keyData);
 		} else {
 			keysNotForContact.push(keyData);
@@ -202,7 +209,7 @@ CImportKeyPopup.prototype.checkArmorForContact = function (keys)
 
 CImportKeyPopup.prototype.getKeysDataForImport = function ()
 {
-	if (this.allowOnlyPublicKeyForEmail() !== '') {
+	if (this.shouldAddToPersonalContact()) {
 		return this.keysForContact()
 				.filter(keyData => keyData.id === this.selectedKeyForContact());
 	} else {
@@ -213,14 +220,11 @@ CImportKeyPopup.prototype.getKeysDataForImport = function ()
 
 CImportKeyPopup.prototype.importKey = async function ()
 {
-	const
-		addKeyToContact = this.allowOnlyPublicKeyForEmail() !== '',
-		armors = this.getKeysDataForImport().map(keyData => keyData.armor)
-	;
+	const armors = this.getKeysDataForImport().map(keyData => keyData.armor);
 
 	if (armors.length > 0) {
 		let res = null;
-		if (addKeyToContact) {
+		if (this.shouldAddToPersonalContact()) {
 			res = await OpenPgp.addKeyToContact(armors[0], this.contactUUID);
 		} else {
 			res = await OpenPgp.importKeys(armors.join(''));

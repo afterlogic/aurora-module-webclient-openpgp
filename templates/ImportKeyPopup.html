@@ -15,10 +15,10 @@
 				 data-bind="visible: keysChecked, customScrollbar: {x: false}"
 			>
 				<div class="scroll-inner">
-					<!-- ko if: allowOnlyPublicKeyForEmail() === '' -->
+					<!-- ko if: !shouldAddToPersonalContact() -->
 						<!-- ko template: '%ModuleName%_ImportKeyPopup_StandardView' --><!-- /ko -->
 					<!-- /ko -->
-					<!-- ko if: allowOnlyPublicKeyForEmail() !== '' -->
+					<!-- ko if: shouldAddToPersonalContact -->
 						<!-- ko template: '%ModuleName%_ImportKeyPopup_ToContactsView' --><!-- /ko -->
 					<!-- /ko -->
 				</div>
