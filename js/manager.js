@@ -15,8 +15,8 @@ module.exports = function (oAppData) {
 		Utils = require('%PathToCoreWebclientModule%/js/utils/Common.js'),
 		App = require('%PathToCoreWebclientModule%/js/App.js'),
 		Popups = require('%PathToCoreWebclientModule%/js/Popups.js'),
-		ImportKeyPopup = null, // ImportKeyPopup requires the OpenPGP library, so it should be required after verifying PGP support only
-		Ajax = require('%PathToCoreWebclientModule%/js/Ajax.js')
+		ImportKeyPopup = null // ImportKeyPopup requires the OpenPGP library, so it should be required after verifying PGP support only
+		// Ajax = require('%PathToCoreWebclientModule%/js/Ajax.js')
 	;
 
 	if (App.getUserRole() !== Enums.UserRole.SuperAdmin)
@@ -309,16 +309,6 @@ module.exports = function (oAppData) {
 					OpenPgp.sign(sData, sPrivateEmail, fOkHandler, fErrorHandler, sPrivateKeyPassword);
 				}
 			},
-		};
-	}
-	else
-	{
-		return {
-			getOpenPgpEncryptor()
-			{
-				let OpenPgp = require('modules/%ModuleName%/js/OpenPgp.js');
-				return OpenPgp;
-			}
 		};
 	}
 
