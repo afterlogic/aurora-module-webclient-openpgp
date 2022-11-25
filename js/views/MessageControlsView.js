@@ -115,7 +115,7 @@ CMessageControlsView.prototype.decryptMessage = function ()
 		fOkHandler = _.bind(function (oRes) {
 			if (oRes && oRes.result && !oRes.errors && this.oMessagePane)
 			{
-				this.oMessagePane.changeText('<pre>' + TextUtils.encodeHtml(oRes.result) + '</pre>');
+				this.oMessagePane.changeText('<pre>' + TextUtils.plainToHtml(oRes.result, true) + '</pre>');
 
 				this.isEncryptedMessage(false);
 				this.visibleDecryptControl(false);
