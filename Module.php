@@ -456,17 +456,19 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 	{
 		$mResult = false;
 
-		$aContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails(
-			$oUser->Id,
-			\Aurora\Modules\Contacts\Enums\StorageType::Team,
-			[$oUser->PublicId],
-			null,
-			false
-		);
-		if ($aContacts && count($aContacts) > 0) {
-			$oContact = $aContacts[0];
-			if ($oContact instanceof Contact) {
-				$mResult = $oContact;
+		if (Api::GetModuleManager()->IsAllowedModule(\Aurora\Modules\TeamContacts\Module::GetName())) {
+			$aContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails(
+				$oUser->Id,
+				\Aurora\Modules\Contacts\Enums\StorageType::Team,
+				[$oUser->PublicId],
+				null,
+				false
+			);
+			if ($aContacts && count($aContacts) > 0) {
+				$oContact = $aContacts[0];
+				if ($oContact instanceof Contact) {
+					$mResult = $oContact;
+				}
 			}
 		}
 
