@@ -136,9 +136,7 @@ async function getOwnPublicKeyFromTeamContacts ()
  */
 function COpenPgp()
 {
-	this.sPrefix = 'user_' + (App.getUserId() || '0') + '_';
-
-	this.oKeyring = new openpgp.Keyring(new openpgp.Keyring.localstore(this.sPrefix));
+	this.oKeyring = new openpgp.Keyring(new openpgp.Keyring.localstore(`aurora_openpgp_user_${App.getUserId() || 0}_`));
 	this.keys = ko.observableArray([]);
 	this.ownKeyFromTeamContacts = ko.observable(null);
 	this.oPromiseInitialised = this.initKeys();
