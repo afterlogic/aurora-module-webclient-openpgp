@@ -37,7 +37,6 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 	 * @todo not used
 	 * @param array $aArgs
 	 * @param object $oItem
-	 * @return boolean
 	 */
 	public function onAfterPopulateFileItem($aArgs, &$oItem)
 	{
