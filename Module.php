@@ -455,7 +455,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 	{
 		$mResult = false;
 
-		if (Api::GetModuleManager()->IsAllowedModule(\Aurora\Modules\TeamContacts\Module::GetName())) {
+		if (Api::GetModuleManager()->IsAllowedModule('TeamContacts')) {
 			$aContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails(
 				$oUser->Id,
 				\Aurora\Modules\Contacts\Enums\StorageType::Team,
