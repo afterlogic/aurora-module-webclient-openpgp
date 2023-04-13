@@ -21,6 +21,15 @@ use Aurora\System\Enums\UserRole;
  */
 class Module extends \Aurora\System\Module\AbstractWebclientModule
 {
+    /**
+     *
+     * @return Module
+     */
+    public static function Decorator()
+    {
+        return parent::Decorator();
+    }
+
     public function init()
     {
         $this->subscribeEvent('Files::PopulateFileItem::after', array($this, 'onAfterPopulateFileItem'));
@@ -41,6 +50,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
     public function onAfterPopulateFileItem($aArgs, &$oItem)
     {
         if ($oItem && '.asc' === \strtolower(\substr(\trim($oItem->Name), -4))) {
+            /** @var \Aurora\Modules\Files\Module $oFilesDecorator */
             $oFilesDecorator = \Aurora\System\Api::GetModuleDecorator('Files');
             if ($oFilesDecorator instanceof \Aurora\System\Module\Decorator) {
                 $mResult = $oFilesDecorator->GetFileContent($aArgs['UserId'], $oItem->TypeStr, $oItem->Path, $oItem->Name);
@@ -351,7 +361,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
         $oContacts = Contact::whereIn('UUID', $UUIDs)->whereNotNull('Properties->' . $this->GetName() . '::PgpKey')->get();
 
-        if (isset($oContacts)) {
+        if ($oContacts) {
             foreach ($oContacts as $oContact) {
                 $mResult[$oContact->UUID]  = $this->getContactPgpData($oContact, $UserId);
             }
@@ -369,6 +379,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         $aContactsInfo = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsInfo(
             \Aurora\Modules\Contacts\Enums\StorageType::Personal,
             $UserId,
+            // @phpstan-ignore-next-line
             Contact::whereNotNull('Properties->' . $this->GetName() . '::PgpKey')
         );
 
