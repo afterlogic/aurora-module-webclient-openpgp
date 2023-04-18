@@ -30,6 +30,15 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         return parent::Decorator();
     }
 
+    /**
+     *
+     * @return Settings
+     */
+    protected function GetModuleSettings()
+    {
+        return $this->oModuleSettings;
+    }
+
     public function init()
     {
         $this->subscribeEvent('Files::PopulateFileItem::after', array($this, 'onAfterPopulateFileItem'));
