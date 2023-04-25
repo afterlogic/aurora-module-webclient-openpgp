@@ -396,7 +396,6 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         $aContactsInfo = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsInfo(
             \Aurora\Modules\Contacts\Enums\StorageType::Personal,
             $UserId,
-            // @phpstan-ignore-next-line
             Contact::whereNotNull('Properties->' . $this->GetName() . '::PgpKey')
         );
 
