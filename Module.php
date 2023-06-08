@@ -185,11 +185,11 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         ];
         $oUser = \Aurora\System\Api::getAuthenticatedUser();
         if ($oUser && $oUser->isNormalOrTenant()) {
-            if (isset($oUser->{self::GetName().'::EnableModule'})) {
-                $aSettings['EnableModule'] = $oUser->{self::GetName().'::EnableModule'};
+            if (null !== $oUser->getExtendedProp(self::GetName().'::EnableModule')) {
+                $aSettings['EnableModule'] = $oUser->getExtendedProp(self::GetName().'::EnableModule');
             }
-            if (isset($oUser->{self::GetName().'::RememberPassphrase'})) {
-                $aSettings['RememberPassphrase'] = $oUser->{self::GetName().'::RememberPassphrase'};
+            if (null !== $oUser->getExtendedProp(self::GetName().'::RememberPassphrase')) {
+                $aSettings['RememberPassphrase'] = $oUser->getExtendedProp(self::GetName().'::RememberPassphrase');
             }
         }
         return $aSettings;
@@ -347,7 +347,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
                     $aResult[] = [
                         'UUID' => $oContact->UUID,
                         'Email' => $oContact->ViewEmail,
-                        'PublicPgpKey' => $oContact->{$this->GetName() . '::PgpKey'}
+                        'PublicPgpKey' => $oContact->getExtendedProp($this->GetName() . '::PgpKey')
                     ];
                 }
             }
