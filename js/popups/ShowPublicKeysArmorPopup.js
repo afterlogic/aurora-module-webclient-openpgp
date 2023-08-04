@@ -2,7 +2,6 @@
 
 var
 	_ = require('underscore'),
-	$ = require('jquery'),
 	ko = require('knockout'),
 	
 	TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
@@ -39,7 +38,7 @@ function CShowKeyArmorPopup()
 			oBlob = null
 		;
 		
-		if (Blob && window.URL && $.isFunction(window.URL.createObjectURL))
+		if (Blob && window.URL && _.isFunction(window.URL.createObjectURL))
 		{
 			oBlob = new Blob([this.armors()], {type: 'text/plain'});
 			sHref = window.URL.createObjectURL(oBlob);

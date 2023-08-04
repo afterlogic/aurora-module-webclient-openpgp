@@ -2,7 +2,6 @@
 
 var
 	_ = require('underscore'),
-	$ = require('jquery'),
 	ko = require('knockout'),
 			
 	Utils = require('%PathToCoreWebclientModule%/js/utils/Common.js'),
