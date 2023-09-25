@@ -185,11 +185,11 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         ];
         $oUser = \Aurora\System\Api::getAuthenticatedUser();
         if ($oUser && $oUser->isNormalOrTenant()) {
-            if (null !== $oUser->getExtendedProp(self::GetName().'::EnableModule')) {
-                $aSettings['EnableModule'] = $oUser->getExtendedProp(self::GetName().'::EnableModule');
+            if (null !== $oUser->getExtendedProp(self::GetName() . '::EnableModule')) {
+                $aSettings['EnableModule'] = $oUser->getExtendedProp(self::GetName() . '::EnableModule');
             }
-            if (null !== $oUser->getExtendedProp(self::GetName().'::RememberPassphrase')) {
-                $aSettings['RememberPassphrase'] = $oUser->getExtendedProp(self::GetName().'::RememberPassphrase');
+            if (null !== $oUser->getExtendedProp(self::GetName() . '::RememberPassphrase')) {
+                $aSettings['RememberPassphrase'] = $oUser->getExtendedProp(self::GetName() . '::RememberPassphrase');
             }
         }
         return $aSettings;
@@ -203,9 +203,9 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         if ($oUser) {
             if ($oUser->isNormalOrTenant()) {
                 $oCoreDecorator = \Aurora\Modules\Core\Module::Decorator();
-                $oUser->setExtendedProp(self::GetName().'::EnableModule', $EnableModule);
+                $oUser->setExtendedProp(self::GetName() . '::EnableModule', $EnableModule);
                 if (isset($RememberPassphrase)) {
-                    $oUser->setExtendedProp(self::GetName().'::RememberPassphrase', $RememberPassphrase);
+                    $oUser->setExtendedProp(self::GetName() . '::RememberPassphrase', $RememberPassphrase);
                 }
                 return $oCoreDecorator->UpdateUserObject($oUser);
             }
