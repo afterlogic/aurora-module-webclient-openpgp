@@ -9,11 +9,13 @@ namespace Aurora\Modules\OpenPgpWebclient;
 
 use Aurora\Modules\Contacts\Enums\StorageType;
 use Aurora\Modules\Contacts\Classes\Contact;
+use Aurora\Modules\Contacts\Enums\Access;
 use Aurora\Modules\Contacts\Enums\SortField;
 use Aurora\Modules\Contacts\Models\ContactCard;
 use Aurora\Modules\Contacts\Module as ContactsModule;
 use Aurora\Modules\TeamContacts\Module as TeamContactsModule;
 use Aurora\System\Api;
+use Illuminate\Database\Capsule\Manager as Capsule;
 
 /**
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
@@ -226,15 +228,15 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
         $contact = \Aurora\Modules\Contacts\Module::Decorator()->GetContact($UUID, $UserId);
         if ($contact instanceof Contact) {
-            $isPersonalContact = $contact->Storage === \Aurora\Modules\Contacts\Enums\StorageType::Personal;
-            $isTeamContact = $contact->Storage === \Aurora\Modules\Contacts\Enums\StorageType::Team;
-            $isItOwnContact = isset($contact->ExtendedInformation['ItsMe']) && $contact->ExtendedInformation['ItsMe'] === true;
-            $isReadOnly = isset($contact->ExtendedInformation['ReadOnly']) && $contact->ExtendedInformation['ReadOnly'] === true;
-            if ($isPersonalContact || $isTeamContact && ($isItOwnContact || !$isReadOnly)) {
-                $contact->setExtendedProp($this->GetName() . '::PgpKey', $Key);
-                return \Aurora\Modules\Contacts\Module::Decorator()->UpdateContactObject($contact);
-            } else {
+            $user = Api::getUserById($UserId);
+            
+            if (!\Aurora\Modules\Contacts\Module::Decorator()->CheckAccessToAddressBook($user, $contact->Storage, [Access::Write, Access::Read])) {
                 throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
+            }
+
+            if (\Aurora\Modules\Contacts\Module::Decorator()->UpdateContactObject($contact)) {
+                $contact->setExtendedProp($this->GetName() . '::PgpKey', $Key);
+                return true;
             }
         }
 
@@ -316,17 +318,19 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         if (\MailSo\Base\Validator::SimpleEmailString($Email)) {
             $aContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails(
                 $UserId,
-                \Aurora\Modules\Contacts\Enums\StorageType::Personal,
+                \Aurora\Modules\Contacts\Enums\StorageType::All,
                 [$Email],
                 null,
                 false
             );
             if ($aContacts && count($aContacts) > 0) {
                 foreach ($aContacts as $oContact) {
-                    if ($oContact instanceof Contact &&
-                        $oContact->Storage === \Aurora\Modules\Contacts\Enums\StorageType::Personal) {
-                        $oContact->setExtendedProp($this->GetName() . '::PgpKey', null);
-                        \Aurora\Modules\Contacts\Module::Decorator()->UpdateContactObject($oContact);
+                    if ($oContact instanceof ContactCard && !$oContact->IsTeam && !$oContact->Shared) {
+
+                        $properties = $oContact->getExtendedProps();
+                        $properties[$this->GetName() . '::PgpKey'] = null;
+            
+                        ContactCard::where('CardId', $oContact->Id)->update(['Properties' => $properties]);
                     }
                 }
 
@@ -405,29 +409,33 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         $aContactUUIDs = [];
         if (is_array($aContactsInfo['Info']) && count($aContactsInfo['Info']) > 0) {
             $aContactUUIDs = array_map(function ($aValue) {
-                return $aValue['UUID'];
+                if (!$aValue['IsTeam'] && !$aValue['Shared']) {
+                    return $aValue['UUID'];
+                }
             }, $aContactsInfo['Info']);
         }
         $aResult = $this->Decorator()->GetPublicKeysByCountactUUIDs($UserId, $aContactUUIDs);
 
-
         return $aResult;
     }
 
-    protected function updatePublicKeyFlags($UserId, $oContactCard, $PgpEncryptMessages = false, $PgpSignMessages = false)
+    protected function updatePublicKeyFlags($UserId, $oContact, $PgpEncryptMessages = false, $PgpSignMessages = false)
     {
         $mResult = false;
 
-        if ($oContactCard instanceof ContactCard) {
-            if ($oContactCard->Storage === StorageType::Team) {
-                $oContactCard->setExtendedProp($this->GetName() . '::PgpEncryptMessages_' . $UserId, $PgpEncryptMessages);
-                $oContactCard->setExtendedProp($this->GetName() . '::PgpSignMessages_' . $UserId, $PgpSignMessages);
-                $mResult = $oContactCard->save();
+        if ($oContact instanceof Contact) {
+            $properties = $oContact->getExtendedProps();
+
+            $addressbook = TeamContactsModule::Decorator()->GetTeamAddressbook($UserId);
+            if ($addressbook && $oContact->AddressBookId == $addressbook['id']) {
+                $properties[$this->GetName() . '::PgpEncryptMessages_' . $UserId] = $PgpEncryptMessages;
+                $properties[$this->GetName() . '::PgpSignMessages_' . $UserId] = $PgpSignMessages;
             } else {
-                $oContactCard->setExtendedProp($this->GetName() . '::PgpEncryptMessages', $PgpEncryptMessages);
-                $oContactCard->setExtendedProp($this->GetName() . '::PgpSignMessages', $PgpSignMessages);
-                $mResult = \Aurora\Modules\Contacts\Module::Decorator()->UpdateContactObject($oContactCard);
+                $properties[$this->GetName() . '::PgpEncryptMessages'] = $PgpEncryptMessages;
+                $properties[$this->GetName() . '::PgpSignMessages'] = $PgpSignMessages;
             }
+
+            $mResult = ContactCard::where('CardId', $oContact->Id)->update(['Properties' => $properties]);
         }
         return $mResult;
     }
@@ -473,12 +481,14 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
             if ($oUser->Id === $UserId) {
                 $oContactCard = $this->getTeamContactByUser($oUser);
                 if ($oContactCard instanceof ContactCard) {
+                    $properties = $oContactCard->Properties;
                     if (!empty($PublicPgpKey)) {
-                        $oContactCard->setExtendedProp($this->GetName() . '::PgpKey', $PublicPgpKey);
+                        $properties[$this->GetName() . '::PgpKey'] = $PublicPgpKey;
+
                     } else {
-                        $oContactCard->unsetExtendedProp($this->GetName() . '::PgpKey');
+                        unset($properties[$this->GetName() . '::PgpKey']);
                     }
-                    $mResult = $oContactCard->save();
+                    $mResult = !!ContactCard::where('CardId', $oContactCard->Id)->update(['Properties' => $properties]);
                 }
             }
         }
@@ -504,8 +514,5 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
         return $mResult;
     }
-
-
-
     /***** public functions might be called with web API *****/
 }
