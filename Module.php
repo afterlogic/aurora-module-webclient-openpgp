@@ -261,14 +261,14 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
                 $mResult = \Aurora\Modules\Contacts\Module::Decorator()->CreateContact(
                     [
                         'PersonalEmail' => $Email,
-                        'FullName' => $UserName
+                        'FullName' => $UserName,
+                        'Storage' =>  \Aurora\Modules\Contacts\Enums\StorageType::Personal
                     ],
                     $UserId
                 );
                 if (isset($mResult['UUID'])) {
                     $oContact = \Aurora\Modules\Contacts\Module::Decorator()->GetContact($mResult['UUID'], $UserId);
-                    if ($oContact instanceof Contact &&
-                        $oContact->Storage === \Aurora\Modules\Contacts\Enums\StorageType::Personal) {
+                    if ($oContact instanceof Contact) {
                         $aContacts = [$oContact];
                     }
                 }
@@ -276,11 +276,11 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
             if ($aContacts && count($aContacts) > 0) {
                 foreach ($aContacts as $oContact) {
-                    if ($oContact instanceof Contact &&
-                        $oContact->Storage === \Aurora\Modules\Contacts\Enums\StorageType::Personal) {
-                        $oContact->setExtendedProp($this->GetName() . '::PgpKey', $Key);
-                        \Aurora\Modules\Contacts\Module::Decorator()->UpdateContactObject($oContact);
-                        $aUpdatedContactIds[] = $oContact->UUID;
+                    if ($oContact instanceof ContactCard) {
+                        $properties = $oContact->getExtendedProps();
+                        $properties[$this->GetName() . '::PgpKey'] = $Key;
+                        ContactCard::where('CardId', $oContact->Id)->update(['Properties' => $properties]);
+                        $aUpdatedContactIds[] = $oContact->Id;
                     }
                 }
 
