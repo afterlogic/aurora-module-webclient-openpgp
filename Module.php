@@ -368,13 +368,13 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         $addressbook = TeamContactsModule::Decorator()->GetTeamAddressbook($iUserId);
         if ($addressbook && $oContact->AddressBookId == $addressbook['id']) {
             return [
-                'PgpEncryptMessages' => (bool) $oContact->getExtendedProp($this->GetName() . '::PgpEncryptMessages', false),
-                'PgpSignMessages' => (bool) $oContact->getExtendedProp($this->GetName() . '::PgpSignMessages', false)
+                'PgpEncryptMessages' => (bool) $oContact->getExtendedProp($this->GetName() . '::PgpEncryptMessages_' . $iUserId, false),
+                'PgpSignMessages' => (bool) $oContact->getExtendedProp($this->GetName() . '::PgpSignMessages_' . $iUserId, false)
             ];
         } else {
             return [
-                'PgpEncryptMessages' => (bool) $oContact->getExtendedProp($this->GetName() . '::PgpEncryptMessages_' . $iUserId, false),
-                'PgpSignMessages' => (bool) $oContact->getExtendedProp($this->GetName() . '::PgpSignMessages_' . $iUserId, false)
+                'PgpEncryptMessages' => (bool) $oContact->getExtendedProp($this->GetName() . '::PgpEncryptMessages', false),
+                'PgpSignMessages' => (bool) $oContact->getExtendedProp($this->GetName() . '::PgpSignMessages', false)
             ];
         }
     }
@@ -435,7 +435,9 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
                 $properties[$this->GetName() . '::PgpSignMessages'] = $PgpSignMessages;
             }
 
-            $mResult = ContactCard::where('CardId', $oContact->Id)->update(['Properties' => $properties]);
+            ContactCard::where('CardId', $oContact->Id)->update(['Properties' => $properties]);
+
+            $mResult = true;
         }
         return $mResult;
     }
