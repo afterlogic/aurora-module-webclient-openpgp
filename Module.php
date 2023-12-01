@@ -230,7 +230,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         if ($contact instanceof Contact) {
             $user = Api::getUserById($UserId);
             
-            if (!\Aurora\Modules\Contacts\Module::Decorator()->CheckAccessToAddressBook($user, $contact->Storage, [Access::Write, Access::Read])) {
+            if (!\Aurora\Modules\Contacts\Module::Decorator()->CheckAccessToAddressBook($user, $contact->Storage, Access::Write)) {
                 throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
             }
 
