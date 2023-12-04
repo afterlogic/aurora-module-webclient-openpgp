@@ -276,15 +276,11 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
             if ($aContacts && count($aContacts) > 0) {
                 foreach ($aContacts as $oContact) {
-                    if ($oContact instanceof ContactCard) {
-                        $properties = $oContact->getExtendedProps();
-                        $properties[$this->GetName() . '::PgpKey'] = $Key;
-                        ContactCard::where('CardId', $oContact->Id)->update(['Properties' => $properties]);
-                        $aUpdatedContactIds[] = $oContact->Id;
-                    }
+                    $properties = $oContact->getExtendedProps();
+                    $properties[$this->GetName() . '::PgpKey'] = $Key;
+                    ContactCard::where('CardId', $oContact->Id)->update(['Properties' => $properties]);
+                    $aUpdatedContactIds[] = $oContact->Id;
                 }
-
-                // $bResult = true;
             }
         }
 
