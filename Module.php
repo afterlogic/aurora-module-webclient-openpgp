@@ -10,10 +10,7 @@ namespace Aurora\Modules\OpenPgpWebclient;
 use Aurora\Modules\Contacts\Enums\StorageType;
 use Aurora\Modules\Contacts\Classes\Contact;
 use Aurora\Modules\Contacts\Enums\Access;
-use Aurora\Modules\Contacts\Enums\SortField;
 use Aurora\Modules\Contacts\Models\ContactCard;
-use Aurora\Modules\Contacts\Module as ContactsModule;
-use Aurora\Modules\TeamContacts\Module as TeamContactsModule;
 use Aurora\System\Api;
 use Illuminate\Database\Capsule\Manager as Capsule;
 
@@ -73,7 +70,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
     {
         if ($oItem && '.asc' === \strtolower(\substr(\trim($oItem->Name), -4))) {
             /** @var \Aurora\Modules\Files\Module $oFilesDecorator */
-            $oFilesDecorator = \Aurora\System\Api::GetModuleDecorator('Files');
+            $oFilesDecorator = Api::GetModuleDecorator('Files');
             if ($oFilesDecorator instanceof \Aurora\System\Module\Decorator) {
                 $mResult = $oFilesDecorator->GetFileContent($aArgs['UserId'], $oItem->TypeStr, $oItem->Path, $oItem->Name);
                 if (isset($mResult)) {
@@ -182,13 +179,13 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
      */
     public function GetSettings()
     {
-        \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
+        Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::Anonymous);
 
         $aSettings = [
             'EnableModule' => false,
             'RememberPassphrase' => false
         ];
-        $oUser = \Aurora\System\Api::getAuthenticatedUser();
+        $oUser = Api::getAuthenticatedUser();
         if ($oUser && $oUser->isNormalOrTenant()) {
             if (null !== $oUser->getExtendedProp(self::GetName() . '::EnableModule')) {
                 $aSettings['EnableModule'] = $oUser->getExtendedProp(self::GetName() . '::EnableModule');
@@ -202,9 +199,9 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
     public function UpdateSettings($EnableModule, $RememberPassphrase)
     {
-        \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+        Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
-        $oUser = \Aurora\System\Api::getAuthenticatedUser();
+        $oUser = Api::getAuthenticatedUser();
         if ($oUser) {
             if ($oUser->isNormalOrTenant()) {
                 $oCoreDecorator = \Aurora\Modules\Core\Module::Decorator();
@@ -224,7 +221,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
     public function AddPublicKeyToContactWithUUID($UserId, $UUID, $Key)
     {
-        \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+        Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
         $contact = \Aurora\Modules\Contacts\Module::Decorator()->GetContact($UUID, $UserId);
         if ($contact instanceof Contact) {
@@ -245,14 +242,14 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
     public function AddPublicKeyToContact($UserId, $Email, $Key, $UserName = '')
     {
-        \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+        Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
         $bResult = false;
         $aUpdatedContactIds = [];
         if (\MailSo\Base\Validator::SimpleEmailString($Email)) {
             $aContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails(
                 $UserId,
-                \Aurora\Modules\Contacts\Enums\StorageType::Personal,
+                StorageType::Personal,
                 [$Email],
                 null,
                 false
@@ -262,7 +259,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
                     [
                         'PersonalEmail' => $Email,
                         'FullName' => $UserName,
-                        'Storage' =>  \Aurora\Modules\Contacts\Enums\StorageType::Personal
+                        'Storage' =>  StorageType::Personal
                     ],
                     $UserId
                 );
@@ -307,14 +304,14 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
     public function RemovePublicKeyFromContact($UserId, $Email)
     {
-        \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+        Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
         $bResult = false;
 
         if (\MailSo\Base\Validator::SimpleEmailString($Email)) {
             $aContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails(
                 $UserId,
-                \Aurora\Modules\Contacts\Enums\StorageType::All,
+                StorageType::All,
                 [$Email],
                 null,
                 false
@@ -339,7 +336,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
     public function GetPublicKeysByCountactUUIDs($UserId, $ContactUUIDs)
     {
-        \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+        Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
         $aResult = [];
 
@@ -361,23 +358,29 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
     protected function getContactPgpData($oContact, $iUserId)
     {
-        $addressbook = TeamContactsModule::Decorator()->GetTeamAddressbook($iUserId);
-        if ($addressbook && $oContact->AddressBookId == $addressbook['id']) {
-            return [
-                'PgpEncryptMessages' => (bool) $oContact->getExtendedProp($this->GetName() . '::PgpEncryptMessages_' . $iUserId, false),
-                'PgpSignMessages' => (bool) $oContact->getExtendedProp($this->GetName() . '::PgpSignMessages_' . $iUserId, false)
-            ];
-        } else {
-            return [
-                'PgpEncryptMessages' => (bool) $oContact->getExtendedProp($this->GetName() . '::PgpEncryptMessages', false),
-                'PgpSignMessages' => (bool) $oContact->getExtendedProp($this->GetName() . '::PgpSignMessages', false)
-            ];
+        $result = [];
+        $teamContactsModuleDecor = Api::GetModuleDecorator('TeamContacts');
+        if ($teamContactsModuleDecor) {
+            $addressbook = $teamContactsModuleDecor->GetTeamAddressbook($iUserId);
+            if ($addressbook && $oContact->AddressBookId == $addressbook['id']) {
+                $result = [
+                    'PgpEncryptMessages' => (bool) $oContact->getExtendedProp($this->GetName() . '::PgpEncryptMessages_' . $iUserId, false),
+                    'PgpSignMessages' => (bool) $oContact->getExtendedProp($this->GetName() . '::PgpSignMessages_' . $iUserId, false)
+                ];
+            } else {
+                $result = [
+                    'PgpEncryptMessages' => (bool) $oContact->getExtendedProp($this->GetName() . '::PgpEncryptMessages', false),
+                    'PgpSignMessages' => (bool) $oContact->getExtendedProp($this->GetName() . '::PgpSignMessages', false)
+                ];
+            }
         }
+
+        return $result;
     }
 
     public function GetContactsWithPublicKeys($UserId, $UUIDs)
     {
-        \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+        Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
         $mResult = [];
 
         $oContactCards = ContactCard::whereIn('CardId', $UUIDs)->whereNotNull('Properties->' . $this->GetName() . '::PgpKey')->get();
@@ -392,12 +395,12 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
     public function GetPublicKeysFromContacts($UserId)
     {
-        \Aurora\System\Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+        Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
 
         $aResult = [];
 
         $aContactsInfo = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsInfo(
-            \Aurora\Modules\Contacts\Enums\StorageType::All,
+            StorageType::All,
             $UserId,
             ContactCard::whereNotNull('Properties->' . $this->GetName() . '::PgpKey')
         );
@@ -419,10 +422,11 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
     {
         $mResult = false;
 
-        if ($oContact instanceof Contact) {
+        $teamContactsModuleDecor = Api::GetModuleDecorator('TeamContacts');
+        if ($teamContactsModuleDecor && $oContact instanceof Contact) {
             $properties = $oContact->getExtendedProps();
 
-            $addressbook = TeamContactsModule::Decorator()->GetTeamAddressbook($UserId);
+            $addressbook = $teamContactsModuleDecor->GetTeamAddressbook($UserId);
             if ($addressbook && $oContact->AddressBookId == $addressbook['id']) {
                 $properties[$this->GetName() . '::PgpEncryptMessages_' . $UserId] = $PgpEncryptMessages;
                 $properties[$this->GetName() . '::PgpSignMessages_' . $UserId] = $PgpSignMessages;
