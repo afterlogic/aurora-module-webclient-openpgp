@@ -155,8 +155,12 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
                 $aContact['PgpSignMessages'] = false;
                 if (isset($aContactsInfo[$aContact['UUID']])) {
                     $aContact['HasPgpPublicKey'] = true;
-                    $aContact['PgpEncryptMessages'] = (bool) $aContactsInfo[$aContact['UUID']]['PgpEncryptMessages'];
-                    $aContact['PgpSignMessages'] = (bool) $aContactsInfo[$aContact['UUID']]['PgpSignMessages'];
+                    if (isset($aContactsInfo[$aContact['UUID']]['PgpEncryptMessages'])) {
+                        $aContact['PgpEncryptMessages'] = (bool) $aContactsInfo[$aContact['UUID']]['PgpEncryptMessages'];
+                    }
+                    if (isset($aContactsInfo[$aContact['UUID']]['PgpSignMessages'])) {
+                        $aContact['PgpSignMessages'] = (bool) $aContactsInfo[$aContact['UUID']]['PgpSignMessages'];
+                    }
                 }
             }
         }
