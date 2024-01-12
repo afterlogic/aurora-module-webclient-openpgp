@@ -230,7 +230,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         $contact = \Aurora\Modules\Contacts\Module::Decorator()->GetContact($UUID, $UserId);
         if ($contact instanceof Contact) {
             $user = Api::getUserById($UserId);
-            
+
             if (!\Aurora\Modules\Contacts\Module::Decorator()->CheckAccessToAddressBook($user, $contact->Storage, Access::Write)) {
                 throw new \Aurora\System\Exceptions\ApiException(\Aurora\System\Notifications::AccessDenied);
             }
@@ -326,7 +326,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
                         $properties = $oContact->getExtendedProps();
                         $properties[$this->GetName() . '::PgpKey'] = null;
-            
+
                         ContactCard::where('CardId', $oContact->Id)->update(['Properties' => $properties]);
                     }
                 }
@@ -363,9 +363,10 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
     protected function getContactPgpData($oContact, $iUserId)
     {
         $result = [];
-        $teamContactsModuleDecor = Api::GetModuleDecorator('TeamContacts');
-        if ($teamContactsModuleDecor) {
-            $addressbook = $teamContactsModuleDecor->GetTeamAddressbook($iUserId);
+        /** @var \Aurora\Modules\TeamContacts\Module $oTeamContactsDecorator */
+        $oTeamContactsDecorator = Api::GetModuleDecorator('TeamContacts');
+        if ($oTeamContactsDecorator instanceof \Aurora\System\Module\Decorator) {
+            $addressbook = $oTeamContactsDecorator->GetTeamAddressbook($iUserId);
             if ($addressbook && $oContact->AddressBookId == $addressbook['id']) {
                 $result = [
                     'PgpEncryptMessages' => (bool) $oContact->getExtendedProp($this->GetName() . '::PgpEncryptMessages_' . $iUserId, false),
@@ -426,11 +427,12 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
     {
         $mResult = false;
 
-        $teamContactsModuleDecor = Api::GetModuleDecorator('TeamContacts');
-        if ($teamContactsModuleDecor && $oContact instanceof Contact) {
+        /** @var \Aurora\Modules\TeamContacts\Module $oTeamContactsDecorator */
+        $oTeamContactsDecorator = Api::GetModuleDecorator('TeamContacts');
+        if ($oTeamContactsDecorator instanceof \Aurora\System\Module\Decorator && $oContact instanceof Contact) {
             $properties = $oContact->getExtendedProps();
 
-            $addressbook = $teamContactsModuleDecor->GetTeamAddressbook($UserId);
+            $addressbook = $oTeamContactsDecorator->GetTeamAddressbook($UserId);
             if ($addressbook && $oContact->AddressBookId == $addressbook['id']) {
                 $properties[$this->GetName() . '::PgpEncryptMessages_' . $UserId] = $PgpEncryptMessages;
                 $properties[$this->GetName() . '::PgpSignMessages_' . $UserId] = $PgpSignMessages;
