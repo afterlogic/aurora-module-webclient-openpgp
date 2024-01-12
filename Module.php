@@ -71,7 +71,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         if ($oItem && '.asc' === \strtolower(\substr(\trim($oItem->Name), -4))) {
             if (class_exists('\Aurora\Modules\Files\Module')) {
                 $oFilesDecorator = \Aurora\Modules\Files\Module::Decorator();
-                if ($oFilesDecorator instanceof \Aurora\System\Module\Decorator) {
+                if ($oFilesDecorator) {
                     $mResult = $oFilesDecorator->GetFileContent($aArgs['UserId'], $oItem->TypeStr, $oItem->Path, $oItem->Name);
                     if (isset($mResult)) {
                         $oItem->Content = $mResult;
@@ -367,7 +367,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
         if (class_exists('\Aurora\Modules\TeamContacts\Module')) {
             $oTeamContactsDecorator = \Aurora\Modules\TeamContacts\Module::Decorator();
-            if ($oTeamContactsDecorator instanceof \Aurora\System\Module\Decorator) {
+            if ($oTeamContactsDecorator) {
                 $addressbook = $oTeamContactsDecorator->GetTeamAddressbook($iUserId);
                 if ($addressbook && $oContact->AddressBookId == $addressbook['id']) {
                     $result = [
@@ -432,7 +432,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
         if (class_exists('\Aurora\Modules\TeamContacts\Module')) {
             $oTeamContactsDecorator = \Aurora\Modules\TeamContacts\Module::Decorator();
-            if ($oTeamContactsDecorator instanceof \Aurora\System\Module\Decorator && $oContact instanceof Contact) {
+            if ($oTeamContactsDecorator && $oContact instanceof Contact) {
                 $properties = $oContact->getExtendedProps();
 
                 $addressbook = $oTeamContactsDecorator->GetTeamAddressbook($UserId);
