@@ -57,6 +57,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         $this->subscribeEvent('Contacts::CreateContact::after', array($this, 'onAfterCreateOrUpdateContact'));
         $this->subscribeEvent('Contacts::UpdateContact::after', array($this, 'onAfterCreateOrUpdateContact'));
         $this->subscribeEvent('Contacts::GetContacts::after', array($this, 'onAfterGetContacts'));
+        $this->subscribeEvent('Contacts::GetContactsByUids::after', array($this, 'onAfterGetContactsByUids'));
         $this->subscribeEvent('System::CastExtendedProp', array($this, 'onCastExtendedProp'));
     }
 
@@ -161,6 +162,30 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
                     }
                     if (isset($aContactsInfo[$aContact['UUID']]['PgpSignMessages'])) {
                         $aContact['PgpSignMessages'] = (bool) $aContactsInfo[$aContact['UUID']]['PgpSignMessages'];
+                    }
+                }
+            }
+        }
+    }
+
+    public function onAfterGetContactsByUids($aArgs, &$mResult)
+    {
+        if (isset($mResult)) {
+            $aContactUUIDs = array_map(function ($aValue) {
+                return $aValue['UUID'];
+            }, $mResult);
+            $aContactsInfo = $this->GetContactsWithPublicKeys($aArgs['UserId'], $aContactUUIDs);
+            foreach ($mResult as &$aContact) {
+                $aContact['OpenPgpWebclient::PgpKey'] = false;
+                $aContact['OpenPgpWebclient::PgpEncryptMessages'] = false;
+                $aContact['OpenPgpWebclient::PgpSignMessages'] = false;
+                if (isset($aContactsInfo[$aContact['UUID']])) {
+                    $aContact['OpenPgpWebclient::PgpKey'] = true;
+                    if (isset($aContactsInfo[$aContact['UUID']]['OpenPgpWebclient::PgpEncryptMessages'])) {
+                        $aContact['OpenPgpWebclient::PgpEncryptMessages'] = (bool) $aContactsInfo[$aContact['UUID']]['OpenPgpWebclient::PgpEncryptMessages'];
+                    }
+                    if (isset($aContactsInfo[$aContact['UUID']]['OpenPgpWebclient::PgpSignMessages'])) {
+                        $aContact['OpenPgpWebclient::PgpSignMessages'] = (bool) $aContactsInfo[$aContact['UUID']]['OpenPgpWebclient::PgpSignMessages'];
                     }
                 }
             }
