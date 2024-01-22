@@ -176,11 +176,13 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
             }, $mResult);
             $aContactsInfo = $this->GetContactsWithPublicKeys($aArgs['UserId'], $aContactUUIDs);
             foreach ($mResult as &$aContact) {
-                $aContact['OpenPgpWebclient::PgpKey'] = false;
+                $aContact['OpenPgpWebclient::PgpKey'] = '';
                 $aContact['OpenPgpWebclient::PgpEncryptMessages'] = false;
                 $aContact['OpenPgpWebclient::PgpSignMessages'] = false;
                 if (isset($aContactsInfo[$aContact['UUID']])) {
-                    $aContact['OpenPgpWebclient::PgpKey'] = true;
+                    if (isset($aContactsInfo[$aContact['UUID']]['OpenPgpWebclient::PgpKey'])) {
+                        $aContact['OpenPgpWebclient::PgpKey'] = $aContactsInfo[$aContact['UUID']]['OpenPgpWebclient::PgpKey'];
+                    }
                     if (isset($aContactsInfo[$aContact['UUID']]['OpenPgpWebclient::PgpEncryptMessages'])) {
                         $aContact['OpenPgpWebclient::PgpEncryptMessages'] = (bool) $aContactsInfo[$aContact['UUID']]['OpenPgpWebclient::PgpEncryptMessages'];
                     }
