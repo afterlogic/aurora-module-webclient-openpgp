@@ -144,50 +144,89 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         }
     }
 
+    /**
+     * The function copies values of user-related properties to the properties with original names.
+     * Then it removes the user-related flags cause they should be exposed to a user.
+     */
     public function onAfterGetContacts($aArgs, &$mResult)
     {
-        if (isset($mResult['List'])) {
-            $aContactUUIDs = array_map(function ($aValue) {
-                return $aValue['UUID'];
-            }, $mResult['List']);
-            $aContactsInfo = $this->GetContactsWithPublicKeys($aArgs['UserId'], $aContactUUIDs);
+        if (isset($aArgs['UserId']) && isset($mResult['List']) && count($mResult['List']) > 0) {
+            $aContactUUIDs = array_map(function ($aValue) { return $aValue['UUID']; }, $mResult['List']);
+            $aContactCards = ContactCard::whereIn('CardId', $aContactUUIDs)->whereNotNull('Properties->' . $this->GetName() . '::PgpKey')->get();
+            $aContactCardsSorted = array();
+            // $oTeamAddressbook = null;
+            $sEncryptPropName = $this->GetName() . '::PgpEncryptMessages';
+            $sSignPropName = $this->GetName() . '::PgpSignMessages';
+
+            foreach ($aContactCards as $oContactCard) {
+                $aContactCardsSorted[$oContactCard->CardId] = $oContactCard;
+            }
+
+            // if (class_exists('\Aurora\Modules\TeamContacts\Module')) {
+            //     $oTeamContactsDecorator = \Aurora\Modules\TeamContacts\Module::Decorator();
+            //     if ($oTeamContactsDecorator) {
+            //         $oTeamAddressbook = $oTeamContactsDecorator->GetTeamAddressbook($aArgs['UserId']);
+            //     }
+            // }
+
             foreach ($mResult['List'] as &$aContact) {
                 $aContact['HasPgpPublicKey'] = false;
                 $aContact['PgpEncryptMessages'] = false;
                 $aContact['PgpSignMessages'] = false;
-                if (isset($aContactsInfo[$aContact['UUID']])) {
+
+                if (isset($aContactCardsSorted[$aContact['UUID']])) {
+                    $oContactCard = $aContactCardsSorted[$aContact['UUID']];
                     $aContact['HasPgpPublicKey'] = true;
-                    if (isset($aContactsInfo[$aContact['UUID']]['PgpEncryptMessages'])) {
-                        $aContact['PgpEncryptMessages'] = (bool) $aContactsInfo[$aContact['UUID']]['PgpEncryptMessages'];
+
+                    // if ($oTeamAddressbook && $aContact['Storage'] == $oTeamAddressbook['id']) {
+                    if (!empty($aContact['IsTeam'])) {
+                        $aContact['PgpEncryptMessages'] = (bool) $oContactCard->getExtendedProp($sEncryptPropName . '_' . $aArgs['UserId'], false);
+                        $aContact['PgpSignMessages'] = (bool) $oContactCard->getExtendedProp($sSignPropName . '_' . $aArgs['UserId'], false);
+                    } else {
+                        $aContact['PgpEncryptMessages'] = (bool) $oContactCard->getExtendedProp($sEncryptPropName, false);
+                        $aContact['PgpSignMessages'] = (bool) $oContactCard->getExtendedProp($sSignPropName, false);
                     }
-                    if (isset($aContactsInfo[$aContact['UUID']]['PgpSignMessages'])) {
-                        $aContact['PgpSignMessages'] = (bool) $aContactsInfo[$aContact['UUID']]['PgpSignMessages'];
+                }
+
+                // remove OpenPGPWebclient properties
+                if ($aContact['Properties']) {
+                    foreach ($aContact['Properties'] as $sPropName => $sPropValue) {
+                        if (strpos($sPropName, $this->GetName() . '::') !== false) {
+                            unset($aContact['Properties'][$sPropName]);
+                        }
                     }
                 }
             }
         }
     }
 
+    /**
+     * The function copies values of user-related properties to the properties with original names.
+     * Then it removes the user-related flags cause they should be exposed to a user.
+     */
     public function onAfterGetContactsByUids($aArgs, &$mResult)
     {
-        if (isset($mResult)) {
-            $aContactUUIDs = array_map(function ($aValue) {
-                return $aValue['UUID'];
-            }, $mResult);
-            $aContactsInfo = $this->GetContactsWithPublicKeys($aArgs['UserId'], $aContactUUIDs);
-            foreach ($mResult as &$aContact) {
-                $aContact['OpenPgpWebclient::PgpKey'] = '';
-                $aContact['OpenPgpWebclient::PgpEncryptMessages'] = false;
-                $aContact['OpenPgpWebclient::PgpSignMessages'] = false;
-                if (isset($aContactsInfo[$aContact['UUID']])) {
-                    if (isset($aContactsInfo[$aContact['UUID']]['OpenPgpWebclient::PgpKey'])) {
-                        $aContact['OpenPgpWebclient::PgpKey'] = $aContactsInfo[$aContact['UUID']]['OpenPgpWebclient::PgpKey'];
+        if (isset($aArgs['UserId']) && isset($mResult)) {
+            foreach ($mResult as $oContact) {
+                if ($oContact->Storage === 'team') {
+                    // add property if it's missing
+                    if (!$oContact->{'OpenPgpWebclient::PgpKey'}) {
+                        $oContact->{'OpenPgpWebclient::PgpKey'} = '';
                     }
-                    if (isset($aContactsInfo[$aContact['UUID']]['OpenPgpWebclient::PgpEncryptMessages'])) {
-                        $aContact['OpenPgpWebclient::PgpEncryptMessages'] = (bool) $aContactsInfo[$aContact['UUID']]['OpenPgpWebclient::PgpEncryptMessages'];
-                    }
-                    if (isset($aContactsInfo[$aContact['UUID']]['OpenPgpWebclient::PgpSignMessages'])) {
-                        $aContact['OpenPgpWebclient::PgpSignMessages'] = (bool) $aContactsInfo[$aContact['UUID']]['OpenPgpWebclient::PgpSignMessages'];
+
+                    $sEncryptPropName = $this->GetName() . '::PgpEncryptMessages';
+                    $sSignPropName = $this->GetName() . '::PgpSignMessages';
+
+                    // copy user-related values to main properties
+                    $oContact->{$sEncryptPropName} = $oContact->{$sEncryptPropName . '_' . $aArgs['UserId']} || false;
+                    $oContact->{$sSignPropName} = $oContact->{$sSignPropName . '_' . $aArgs['UserId']} || false;
+
+                    // remove user-related values from properties
+                    foreach ($oContact->Properties as $sPropName => $sPropValue) {
+                        if (strpos($sPropName, $sEncryptPropName . '_') !== false || strpos($sPropName, $sSignPropName . '_') !== false) {
+                            // @TODO remove the property from the contact
+                            $oContact->{$sPropName} = '';
+                        }
                     }
                 }
             }
@@ -388,45 +427,18 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         return $aResult;
     }
 
-    protected function getContactPgpData($oContact, $iUserId)
-    {
-        $result = [];
+    // public function GetContactsWithPublicKeys($UserId, $UUIDs)
+    // {
+    //     Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
+    //     $mResult = [];
 
-        if (class_exists('\Aurora\Modules\TeamContacts\Module')) {
-            $oTeamContactsDecorator = \Aurora\Modules\TeamContacts\Module::Decorator();
-            if ($oTeamContactsDecorator) {
-                $addressbook = $oTeamContactsDecorator->GetTeamAddressbook($iUserId);
-                if ($addressbook && $oContact->AddressBookId == $addressbook['id']) {
-                    $result = [
-                        'PgpEncryptMessages' => (bool) $oContact->getExtendedProp($this->GetName() . '::PgpEncryptMessages_' . $iUserId, false),
-                        'PgpSignMessages' => (bool) $oContact->getExtendedProp($this->GetName() . '::PgpSignMessages_' . $iUserId, false)
-                    ];
-                } else {
-                    $result = [
-                        'PgpEncryptMessages' => (bool) $oContact->getExtendedProp($this->GetName() . '::PgpEncryptMessages', false),
-                        'PgpSignMessages' => (bool) $oContact->getExtendedProp($this->GetName() . '::PgpSignMessages', false)
-                    ];
-                }
-            }
-        }
-
-        return $result;
-    }
-
-    public function GetContactsWithPublicKeys($UserId, $UUIDs)
-    {
-        Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
-        $mResult = [];
-
-        $oContactCards = ContactCard::whereIn('CardId', $UUIDs)->whereNotNull('Properties->' . $this->GetName() . '::PgpKey')->get();
-        if ($oContactCards) {
-            foreach ($oContactCards as $oContactCard) {
-                $mResult[$oContactCard->CardId]  = $this->getContactPgpData($oContactCard, $UserId);
-            }
-        }
-
-        return $mResult;
-    }
+    //     $oContactCards = ContactCard::whereIn('CardId', $UUIDs)->whereNotNull('Properties->' . $this->GetName() . '::PgpKey')->get();
+    //     if ($oContactCards) {
+    //         foreach ($oContactCards as $oContactCard) {
+    //             $mResult[$oContactCard->CardId]  = $this->getContactPgpData($oContactCard, $UserId);
+    //         }
+    //     }
+    // }
 
     public function GetPublicKeysFromContacts($UserId)
     {
