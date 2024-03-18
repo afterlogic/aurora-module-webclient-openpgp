@@ -196,7 +196,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
     public function onCastExtendedProp($aArgs, &$mValue)
     {
-        if ($aArgs['Model'] instanceof Contact &&
+        if ($aArgs['Model'] instanceof ContactCard &&
             ($aArgs['PropertyName'] === $this->GetName() . '::PgpEncryptMessages' ||
                 $aArgs['PropertyName'] === $this->GetName() . '::PgpSignMessages')) {
             $mValue = (bool) $mValue;
