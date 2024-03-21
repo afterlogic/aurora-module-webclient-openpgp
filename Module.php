@@ -179,7 +179,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
                 }
 
                 // remove OpenPGPWebclient properties
-                if ($aContact['Properties']) {
+                if (isset($aContact['Properties'])) {
                     foreach ($aContact['Properties'] as $sPropName => $sPropValue) {
                         if (strpos($sPropName, $this->GetName() . '::') !== false) {
                             unset($aContact['Properties'][$sPropName]);
