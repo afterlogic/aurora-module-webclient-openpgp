@@ -16,10 +16,9 @@ module.exports = function (oAppData) {
 		App = require('%PathToCoreWebclientModule%/js/App.js'),
 		Popups = require('%PathToCoreWebclientModule%/js/Popups.js'),
 		ImportKeyPopup = null // ImportKeyPopup requires the OpenPGP library, so it should be required after verifying PGP support only
-		// Ajax = require('%PathToCoreWebclientModule%/js/Ajax.js')
 	;
 
-	if (App.getUserRole() !== Enums.UserRole.SuperAdmin)
+	if (App.isUserNormalOrTenant())
 	{
 		let
 			_ = require('underscore'),
