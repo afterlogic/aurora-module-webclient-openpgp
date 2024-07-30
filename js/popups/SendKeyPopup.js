@@ -49,8 +49,8 @@ SendKeyPopup.prototype.sendKey = async function ()
 	if (this.bAllowSendEmails && this.oPublicKey.getArmor() !== '' && this.downloadLinkFilename() !== '')
 	{
 		Ajax.send(
-			'Core',
-			'SaveContentAsTempFile',
+			'%ModuleName%',
+			'SaveKeyAsTempFile',
 			{
 				'Content': this.oPublicKey.getArmor(),
 				'FileName': this.downloadLinkFilename()

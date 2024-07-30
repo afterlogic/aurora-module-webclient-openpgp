@@ -86,7 +86,7 @@ CShowKeyArmorPopup.prototype.send = function ()
 			&& this.downloadLinkFilename() !== ''
 		)
 		{
-			Ajax.send('Core', 'SaveContentAsTempFile', { 'Content': this.armor(), 'FileName': this.downloadLinkFilename() }, function (oResponse) {
+			Ajax.send('%ModuleName%', 'SaveKeyAsTempFile', { 'Content': this.armor(), 'FileName': this.downloadLinkFilename() }, function (oResponse) {
 				if (oResponse.Result)
 				{
 					ComposeMessageWithAttachments([oResponse.Result]);
