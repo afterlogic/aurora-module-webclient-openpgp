@@ -70,7 +70,7 @@ CShowKeyArmorPopup.prototype.send = function ()
 {
 	if (this.bAllowSendEmails && this.armors() !== '' && this.downloadLinkFilename() !== '')
 	{
-		Ajax.send('Core', 'SaveContentAsTempFile', { 'Content': this.armors(), 'FileName': this.downloadLinkFilename() }, function (oResponse) {
+		Ajax.send('%ModuleName%', 'SaveKeyAsTempFile', { 'Content': this.armors(), 'FileName': this.downloadLinkFilename() }, function (oResponse) {
 			if (oResponse.Result)
 			{
 				ComposeMessageWithAttachments([oResponse.Result]);

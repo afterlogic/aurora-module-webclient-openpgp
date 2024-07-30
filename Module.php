@@ -12,6 +12,9 @@ use Aurora\Modules\Contacts\Classes\Contact;
 use Aurora\Modules\Contacts\Enums\Access;
 use Aurora\Modules\Contacts\Models\ContactCard;
 use Aurora\System\Api;
+use Aurora\System\Enums\UserRole;
+use Aurora\System\Exceptions\ApiException;
+use Aurora\System\Notifications;
 
 /**
  * @license https://www.gnu.org/licenses/agpl-3.0.html AGPL-3.0
@@ -538,6 +541,54 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
                     $mResult = $oContactCard->getExtendedProp($this->GetName() . '::PgpKey', false);
                 }
             }
+        }
+
+        return $mResult;
+    }
+
+    /**
+     *
+     * @param int $UserId
+     * @param string $Content
+     * @param string $FileName
+     * @return array|bool
+     * @throws ApiException
+     */
+    public function SaveKeyAsTempFile($UserId, $Content, $FileName)
+    {
+        $mResult = false;
+        Api::checkUserRoleIsAtLeast(UserRole::NormalUser);
+
+        $ext = '';
+        $fileInfo = pathinfo($FileName);
+        if (isset($fileInfo['extension'])) {
+            $ext = strtolower($fileInfo['extension']);
+        }
+
+        if ($ext !== 'asc') {
+            throw new ApiException(Notifications::FilesNotAllowed);
+        }
+
+        $sUUID = Api::getUserUUIDById($UserId);
+        try {
+            $sTempName = md5($sUUID . $Content . $FileName);
+            $oApiFileCache = new \Aurora\System\Managers\Filecache();
+
+            if (!$oApiFileCache->isFileExists($sUUID, $sTempName)) {
+                $oApiFileCache->put($sUUID, $sTempName, $Content);
+            }
+
+            if ($oApiFileCache->isFileExists($sUUID, $sTempName)) {
+                $mResult = \Aurora\System\Utils::GetClientFileResponse(
+                    null,
+                    $UserId,
+                    $FileName,
+                    $sTempName,
+                    $oApiFileCache->fileSize($sUUID, $sTempName)
+                );
+            }
+        } catch (\Exception $oException) {
+            throw new ApiException(Notifications::FilesNotAllowed, $oException, $oException->getMessage());
         }
 
         return $mResult;
