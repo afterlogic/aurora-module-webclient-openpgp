@@ -326,9 +326,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
             $aContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails(
                 $UserId,
                 StorageType::Personal,
-                [$Email],
-                null,
-                false
+                [$Email]
             );
             if (count($aContacts) === 0) {
                 $mResult = \Aurora\Modules\Contacts\Module::Decorator()->CreateContact(
@@ -388,9 +386,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
             $aContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails(
                 $UserId,
                 StorageType::All,
-                [$Email],
-                null,
-                false
+                [$Email]
             );
             if ($aContacts && count($aContacts) > 0) {
                 foreach ($aContacts as $oContact) {
@@ -500,9 +496,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
             $aContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails(
                 $oUser->Id,
                 \Aurora\Modules\Contacts\Enums\StorageType::Team,
-                [$oUser->PublicId],
-                null,
-                false
+                [$oUser->PublicId]
             );
             if ($aContacts && count($aContacts) > 0) {
                 $oContact = $aContacts[0];
