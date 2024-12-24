@@ -405,6 +405,14 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         return $bResult;
     }
 
+    /**
+     * The method returns list of PGP public keys with their ViewEmails for specified contacts.
+     *
+     * @param int $UserId User ID. Provided automatically by WebAPI wrapper.
+     * @param array $ContactUUIDs List of contact IDs.
+     *
+     * @return array
+     */
     public function GetPublicKeysByCountactUUIDs($UserId, $ContactUUIDs)
     {
         Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
@@ -416,7 +424,6 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
             if (is_array($aContacts) && count($aContacts) > 0) {
                 foreach ($aContacts as $oContact) {
                     $aResult[] = [
-                        'UUID' => $oContact->UUID,
                         'Email' => $oContact->ViewEmail,
                         'PublicPgpKey' => $oContact->getExtendedProp($this->GetName() . '::PgpKey')
                     ];
