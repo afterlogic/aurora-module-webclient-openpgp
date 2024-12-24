@@ -216,19 +216,25 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
     {
         if (isset($aArgs['UserId']) && isset($mResult)) {
             foreach ($mResult as $oContact) {
-                if ($oContact instanceof Contact && $oContact->Storage === StorageType::Team) {
+                if ($oContact instanceof Contact) {
+                    // add a srting property if it's missing or null
+                    if (!$oContact->getExtendedProp($this->GetName() . '::PgpKey')) {
+                        $oContact->setExtendedProp($this->GetName() . '::PgpKey', '');
+                    }
 
-                    $sEncryptPropName = $this->GetName() . '::PgpEncryptMessages';
-                    $sSignPropName = $this->GetName() . '::PgpSignMessages';
+                    if ($oContact->Storage === StorageType::Team) {
+                        $sEncryptPropName = $this->GetName() . '::PgpEncryptMessages';
+                        $sSignPropName = $this->GetName() . '::PgpSignMessages';
 
-                    // copy user-related values to main properties
-                    $oContact->setExtendedProp($sEncryptPropName, $oContact->getExtendedProp($sEncryptPropName . '_' . $aArgs['UserId']) || false);
-                    $oContact->setExtendedProp($sSignPropName, $oContact->getExtendedProp($sSignPropName . '_' . $aArgs['UserId']) || false);
+                        // copy user-related values to main properties
+                        $oContact->setExtendedProp($sEncryptPropName, $oContact->getExtendedProp($sEncryptPropName . '_' . $aArgs['UserId']) || false);
+                        $oContact->setExtendedProp($sSignPropName, $oContact->getExtendedProp($sSignPropName . '_' . $aArgs['UserId']) || false);
 
-                    // remove user-related values from properties
-                    foreach ($oContact->Properties as $sPropName => $sPropValue) {
-                        if (strpos($sPropName, $sEncryptPropName . '_') !== false || strpos($sPropName, $sSignPropName . '_') !== false) {
-                            $oContact->unsetExtendedProp($sPropName);
+                        // remove user-related values from properties
+                        foreach ($oContact->Properties as $sPropName => $sPropValue) {
+                            if (strpos($sPropName, $sEncryptPropName . '_') !== false || strpos($sPropName, $sSignPropName . '_') !== false) {
+                                $oContact->unsetExtendedProp($sPropName);
+                            }
                         }
                     }
                 }
