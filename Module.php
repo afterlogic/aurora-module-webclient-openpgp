@@ -150,7 +150,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
                     }
                 }
                 if ($needsToUpdate) {
-                    \Aurora\Modules\Contacts\Module::Decorator()->UpdateContactObject($oContact);
+                    $oContact->saveExtendedProps();
                 }
                 if (is_array($mResult) && isset($mResult['ETag'])) {
                     $mResult['ETag'] = $oContact->ETag;
@@ -173,7 +173,9 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
             $sSignPropName = $this->GetName() . '::PgpSignMessages';
 
             foreach ($aContactCards as $oContactCard) {
-                $aContactCardsSorted[$oContactCard->CardId] = $oContactCard;
+                if ($oContactCard->getExtendedProp($this->GetName() . '::PgpKey') !== '') {
+                    $aContactCardsSorted[$oContactCard->CardId] = $oContactCard;
+                }
             }
 
             foreach ($mResult['List'] as &$aContact) {
@@ -214,18 +216,14 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
     {
         if (isset($aArgs['UserId']) && isset($mResult)) {
             foreach ($mResult as $oContact) {
-                if ($oContact->Storage === StorageType::Team) {
-                    // add property if it's missing
-                    if (!$oContact->getExtendedProp('OpenPgpWebclient::PgpKey')) {
-                        $oContact->setExtendedProp('OpenPgpWebclient::PgpKey', '');
-                    }
+                if ($oContact instanceof Contact && $oContact->Storage === StorageType::Team) {
 
                     $sEncryptPropName = $this->GetName() . '::PgpEncryptMessages';
                     $sSignPropName = $this->GetName() . '::PgpSignMessages';
 
                     // copy user-related values to main properties
-                    $oContact->setExtendedProp($sEncryptPropName, $oContact->{$sEncryptPropName . '_' . $aArgs['UserId']} || false);
-                    $oContact->setExtendedProp($sSignPropName, $oContact->{$sSignPropName . '_' . $aArgs['UserId']} || false);
+                    $oContact->setExtendedProp($sEncryptPropName, $oContact->getExtendedProp($sEncryptPropName . '_' . $aArgs['UserId']) || false);
+                    $oContact->setExtendedProp($sSignPropName, $oContact->getExtendedProp($sSignPropName . '_' . $aArgs['UserId']) || false);
 
                     // remove user-related values from properties
                     foreach ($oContact->Properties as $sPropName => $sPropValue) {
@@ -309,6 +307,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
             if (\Aurora\Modules\Contacts\Module::Decorator()->UpdateContactObject($contact)) {
                 $contact->setExtendedProp($this->GetName() . '::PgpKey', $Key);
+                $contact->saveExtendedProps();
                 return true;
             }
         }
