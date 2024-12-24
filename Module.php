@@ -293,6 +293,14 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         return false;
     }
 
+    /**
+     * Summary of AddPublicKeyToContactWithUUID
+     * @param int $UserId
+     * @param mixed $UUID
+     * @param string $Key
+     * @throws \Aurora\System\Exceptions\ApiException
+     * @return bool
+     */
     public function AddPublicKeyToContactWithUUID($UserId, $UUID, $Key)
     {
         Api::checkUserRoleIsAtLeast(\Aurora\System\Enums\UserRole::NormalUser);
@@ -307,8 +315,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
 
             if (\Aurora\Modules\Contacts\Module::Decorator()->UpdateContactObject($contact)) {
                 $contact->setExtendedProp($this->GetName() . '::PgpKey', $Key);
-                $contact->saveExtendedProps();
-                return true;
+                return !!$contact->saveExtendedProps();
             }
         }
 
