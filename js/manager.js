@@ -1,5 +1,7 @@
 'use strict';
 
+const _ = require('underscore')
+
 function IsPgpSupported()
 {
 	return !!(window.crypto && window.crypto.getRandomValues);
@@ -11,24 +13,146 @@ module.exports = function (oAppData) {
 		return null;
 	}
 
-	let
+	const
 		Utils = require('%PathToCoreWebclientModule%/js/utils/Common.js'),
 		App = require('%PathToCoreWebclientModule%/js/App.js'),
 		Popups = require('%PathToCoreWebclientModule%/js/Popups.js'),
-		ImportKeyPopup = null // ImportKeyPopup requires the OpenPGP library, so it should be required after verifying PGP support only
+		TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js')
 	;
+		
+	let ImportKeyPopup = null; // ImportKeyPopup requires the OpenPGP library, so it should be required after verifying PGP support only
 
+	const oModule = {
+		async getKeyInfo(sValue, fCallback)
+		{
+			let
+				openpgp = require('%PathToCoreWebclientModule%/js/vendors/openpgp.js'),
+				COpenPgpKey = require('modules/OpenPgpWebclient/js/COpenPgpKey.js'),
+				oPublicKey = null,
+				oResult = null
+			;
+
+			oPublicKey = await openpgp.key.readArmored(sValue);
+			if (
+				oPublicKey
+				&& !oPublicKey.err
+				&& oPublicKey.keys
+				&& oPublicKey.keys[0]
+			)
+			{
+				oResult = new COpenPgpKey(oPublicKey.keys[0]);
+			}
+			if (_.isFunction(fCallback))
+			{
+				fCallback(oResult);
+			}
+
+			return oResult;
+		},
+
+		getOpenPgpEncryptor()
+		{
+			let OpenPgp = require('modules/%ModuleName%/js/OpenPgp.js');
+			return OpenPgp;
+		},
+
+		getPgpKeyControlsView(afterRemoveContactKeyHandler) {
+			const pgpKeyControlsView = require('modules/%ModuleName%/js/views/PgpKeyControlsView.js');
+			pgpKeyControlsView.setAfterRemoveContactKeyHandler(afterRemoveContactKeyHandler);
+			return pgpKeyControlsView;
+		},
+
+		getSuggestionsAutocompleteFilteredCallback(fSuggestionsAutocompleteCallback)
+		{
+			return (oRequest, fResponse) => {
+				const fResponseWrapper = oItems => {
+					/*---here we can filter or edit response items---*/
+					let OpenPgp = require('modules/%ModuleName%/js/OpenPgp.js');
+					const aPublicKeysEmails = OpenPgp.getPublicKeys().map(oKey => oKey.getEmail());
+					oItems.forEach(oItem => {
+						if (!oItem.hasKey) {
+							oItem.hasKey = aPublicKeysEmails.includes(oItem.email);
+						}
+					});
+					/*-----------------------------------------------*/
+					fResponse(oItems);
+				};
+				fSuggestionsAutocompleteCallback(oRequest, fResponseWrapper);
+			};
+		},
+		
+		async getPrivateKeyPassword(sEmail, fCallback)
+		{
+			let OpenPgp = require('modules/%ModuleName%/js/OpenPgp.js');
+			let sPrivateKeyPassword = await OpenPgp.getPrivateKeyPassword(sEmail);
+			fCallback(sPrivateKeyPassword);
+		},
+		
+		encryptSign(bEncrypt, bSign, sData, aPrincipalsEmail, contactsUUIDs, fOkCallback,
+					sFromEmail = '', sPrivateKeyPassword = null)
+		{
+			var
+				Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
+				
+				ErrorsUtils = require('modules/%ModuleName%/js/utils/Errors.js'),
+
+				Enums = require('modules/%ModuleName%/js/Enums.js'),
+				OpenPgp = require('modules/%ModuleName%/js/OpenPgp.js')
+			;
+			var
+				sPrivateEmail = bSign ? sFromEmail : '',
+				sOkReport = '',
+				sPgpAction = '',
+				fOkHandler = _.bind(function (oRes) {
+					if (_.isFunction(fOkCallback))
+					{
+						fOkCallback(oRes.result, bEncrypt);
+					}
+				}, this),
+				fErrorHandler = function (oRes) {
+					ErrorsUtils.showPgpErrorByCode(oRes, sPgpAction);
+				}
+			;
+
+			if (bEncrypt)
+			{
+				if (aPrincipalsEmail.length === 0)
+				{
+					Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_TO_ENCRYPT_SPECIFY_RECIPIENTS'));
+				}
+				else
+				{
+					var
+						aUserEmail = [sFromEmail],
+						aEmailForEncrypt = OpenPgp.findKeysByEmails(aUserEmail, true).length > 0 ? _.union(aPrincipalsEmail, aUserEmail) : aPrincipalsEmail
+					;
+					if (bSign)
+					{
+						sPgpAction = Enums.PgpAction.EncryptSign;
+						OpenPgp.signAndEncrypt(sData, sPrivateEmail, aEmailForEncrypt,
+							sPrivateKeyPassword, fOkHandler, fErrorHandler, contactsUUIDs);
+					}
+					else
+					{
+						sPgpAction = Enums.PgpAction.Encrypt;
+						OpenPgp.encrypt(sData, aEmailForEncrypt, fOkHandler, fErrorHandler, contactsUUIDs);
+					}
+				}
+			}
+			else if (bSign)
+			{
+				sPgpAction = Enums.PgpAction.Sign;
+				OpenPgp.sign(sData, sPrivateEmail, fOkHandler, fErrorHandler, sPrivateKeyPassword);
+			}
+		},
+	};
 	if (App.isUserNormalOrTenant())
 	{
-		let
-			_ = require('underscore'),
-			TextUtils = require('%PathToCoreWebclientModule%/js/utils/Text.js'),
-			Settings = require('modules/%ModuleName%/js/Settings.js')
-		;
+		const Settings = require('modules/%ModuleName%/js/Settings.js');
 
 		Settings.init(oAppData);
 
-		return {
+		_.extendOwn(oModule, {
 			start(ModulesManager)
 			{
 				ImportKeyPopup = require('modules/%ModuleName%/js/popups/ImportKeyPopup.js');
@@ -185,131 +309,8 @@ module.exports = function (oAppData) {
 			{
 				return Settings.enableOpenPgpInMail;
 			},
-
-			async getKeyInfo(sValue, fCallback)
-			{
-				let
-					openpgp = require('%PathToCoreWebclientModule%/js/vendors/openpgp.js'),
-					COpenPgpKey = require('modules/OpenPgpWebclient/js/COpenPgpKey.js'),
-					oPublicKey = null,
-					oResult = null
-				;
-
-				oPublicKey = await openpgp.key.readArmored(sValue);
-				if (
-					oPublicKey
-					&& !oPublicKey.err
-					&& oPublicKey.keys
-					&& oPublicKey.keys[0]
-				)
-				{
-					oResult = new COpenPgpKey(oPublicKey.keys[0]);
-				}
-				if (_.isFunction(fCallback))
-				{
-					fCallback(oResult);
-				}
-
-				return oResult;
-			},
-
-			getOpenPgpEncryptor()
-			{
-				let OpenPgp = require('modules/%ModuleName%/js/OpenPgp.js');
-				return OpenPgp;
-			},
-
-			getPgpKeyControlsView(afterRemoveContactKeyHandler) {
-				const pgpKeyControlsView = require('modules/%ModuleName%/js/views/PgpKeyControlsView.js');
-				pgpKeyControlsView.setAfterRemoveContactKeyHandler(afterRemoveContactKeyHandler);
-				return pgpKeyControlsView;
-			},
-
-			getSuggestionsAutocompleteFilteredCallback(fSuggestionsAutocompleteCallback)
-			{
-				return (oRequest, fResponse) => {
-					const fResponseWrapper = oItems => {
-						/*---here we can filter or edit response items---*/
-						let OpenPgp = require('modules/%ModuleName%/js/OpenPgp.js');
-						const aPublicKeysEmails = OpenPgp.getPublicKeys().map(oKey => oKey.getEmail());
-						oItems.forEach(oItem => {
-							if (!oItem.hasKey) {
-								oItem.hasKey = aPublicKeysEmails.includes(oItem.email);
-							}
-						});
-						/*-----------------------------------------------*/
-						fResponse(oItems);
-					};
-					fSuggestionsAutocompleteCallback(oRequest, fResponseWrapper);
-				};
-			},
-			
-			async getPrivateKeyPassword(sEmail, fCallback)
-			{
-				let OpenPgp = require('modules/%ModuleName%/js/OpenPgp.js');
-				let sPrivateKeyPassword = await OpenPgp.getPrivateKeyPassword(sEmail);
-				fCallback(sPrivateKeyPassword);
-			},
-			
-			encryptSign(bEncrypt, bSign, sData, aPrincipalsEmail, contactsUUIDs, fOkCallback,
-						sFromEmail = '', sPrivateKeyPassword = null)
-			{
-				var
-					Screens = require('%PathToCoreWebclientModule%/js/Screens.js'),
-					
-					ErrorsUtils = require('modules/%ModuleName%/js/utils/Errors.js'),
-
-					Enums = require('modules/%ModuleName%/js/Enums.js'),
-					OpenPgp = require('modules/%ModuleName%/js/OpenPgp.js')
-				;
-				var
-					sPrivateEmail = bSign ? sFromEmail : '',
-					sOkReport = '',
-					sPgpAction = '',
-					fOkHandler = _.bind(function (oRes) {
-						if (_.isFunction(fOkCallback))
-						{
-							fOkCallback(oRes.result, bEncrypt);
-						}
-					}, this),
-					fErrorHandler = function (oRes) {
-						ErrorsUtils.showPgpErrorByCode(oRes, sPgpAction);
-					}
-				;
-
-				if (bEncrypt)
-				{
-					if (aPrincipalsEmail.length === 0)
-					{
-						Screens.showError(TextUtils.i18n('%MODULENAME%/ERROR_TO_ENCRYPT_SPECIFY_RECIPIENTS'));
-					}
-					else
-					{
-						var
-							aUserEmail = [sFromEmail],
-							aEmailForEncrypt = OpenPgp.findKeysByEmails(aUserEmail, true).length > 0 ? _.union(aPrincipalsEmail, aUserEmail) : aPrincipalsEmail
-						;
-						if (bSign)
-						{
-							sPgpAction = Enums.PgpAction.EncryptSign;
-							OpenPgp.signAndEncrypt(sData, sPrivateEmail, aEmailForEncrypt,
-								sPrivateKeyPassword, fOkHandler, fErrorHandler, contactsUUIDs);
-						}
-						else
-						{
-							sPgpAction = Enums.PgpAction.Encrypt;
-							OpenPgp.encrypt(sData, aEmailForEncrypt, fOkHandler, fErrorHandler, contactsUUIDs);
-						}
-					}
-				}
-				else if (bSign)
-				{
-					sPgpAction = Enums.PgpAction.Sign;
-					OpenPgp.sign(sData, sPrivateEmail, fOkHandler, fErrorHandler, sPrivateKeyPassword);
-				}
-			},
-		};
+		});
 	}
 
-	return null;
+	return oModule;
 };
