@@ -119,18 +119,34 @@ CImportKeyPopup.prototype.checkArmor = async function ()
 	}
 };
 
+function getKeyLengthAddInfo(key)
+{
+	if (key.isEllipticCurveKey()) {
+		const addInfoLangKey = key.isPublic() ?
+			'%MODULENAME%/INFO_PUBLIC_KEY_ECC_LENGTH' :
+			'%MODULENAME%/INFO_PRIVATE_KEY_ECC_LENGTH';
+
+		return TextUtils.i18n(addInfoLangKey, {'CURVE': key.getCurveDisplayName()});
+	}
+
+	const addInfoLangKey = key.isPublic() ?
+		'%MODULENAME%/INFO_PUBLIC_KEY_LENGTH' :
+		'%MODULENAME%/INFO_PRIVATE_KEY_LENGTH';
+
+	return TextUtils.i18n(addInfoLangKey, {'LENGTH': key.getBitSize()});
+}
+
 function getKeyData(key) {
 	const
 		hasNoEmail = !AddressUtils.isCorrectEmail(key.getEmail()),
 		hasSameKey = OpenPgp.findKeysByEmails([key.getEmail()], key.isPublic()).length > 0,
-		isOwnKey = OpenPgp.isOwnEmail(key.getEmail()),
-		addInfoLangKey = key.isPublic() ? '%MODULENAME%/INFO_PUBLIC_KEY_LENGTH' : '%MODULENAME%/INFO_PRIVATE_KEY_LENGTH'
+		isOwnKey = OpenPgp.isOwnEmail(key.getEmail())
 	;
 	return {
 		'armor': key.getArmor(),
 		'email': key.user,
 		'id': `${key.getId()}_${key.isPublic() ? 'public': 'private'}`,
-		'addInfo': TextUtils.i18n(addInfoLangKey, {'LENGTH': key.getBitSize()}),
+		'addInfo': getKeyLengthAddInfo(key),
 		'needToImport': ko.observable(!hasSameKey && !hasNoEmail),
 		'isExternal': !isOwnKey
 	};

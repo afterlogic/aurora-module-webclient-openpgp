@@ -108,12 +108,54 @@ COpenPgpKey.prototype.getFingerprint = function ()
 };
 
 /**
+ * @return {Object}
+ */
+COpenPgpKey.prototype.getPrimaryAlgorithmInfo = function ()
+{
+	return this.pgpKey.primaryKey.getAlgorithmInfo();
+};
+
+/**
+ * @return {boolean}
+ */
+COpenPgpKey.prototype.isEllipticCurveKey = function ()
+{
+	let aAlgorithmInfo = this.getPrimaryAlgorithmInfo();
+
+	return !!aAlgorithmInfo.curve && !aAlgorithmInfo.bits;
+};
+
+/**
+ * @return {string}
+ */
+COpenPgpKey.prototype.getCurveDisplayName = function ()
+{
+	let
+		sCurve = this.getPrimaryAlgorithmInfo().curve || '',
+		aCurveNames = {
+			'ed25519': 'Ed25519',
+			'curve25519': 'Curve25519',
+			'cv25519': 'Curve25519',
+			'p256': 'NIST P-256',
+			'p384': 'NIST P-384',
+			'p521': 'NIST P-521',
+			'secp256k1': 'secp256k1',
+			'brainpoolP256r1': 'Brainpool P-256',
+			'brainpoolP384r1': 'Brainpool P-384',
+			'brainpoolP512r1': 'Brainpool P-512'
+		}
+	;
+
+	return aCurveNames[sCurve] || sCurve;
+};
+
+/**
  * @return {number}
  */
 COpenPgpKey.prototype.getBitSize = function ()
 {
 	let
-		aAlgorithmInfo = this.pgpKey.primaryKey.getAlgorithmInfo(),
+		aAlgorithmInfo = this.getPrimaryAlgorithmInfo(),
 		iBitSize = aAlgorithmInfo.bits ? aAlgorithmInfo.bits : 0
 	;
 
