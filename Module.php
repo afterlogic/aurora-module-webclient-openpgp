@@ -167,7 +167,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
     {
         if (isset($aArgs['UserId']) && isset($mResult['List']) && count($mResult['List']) > 0) {
             $aContactUUIDs = array_map(function ($aValue) { return $aValue['UUID']; }, $mResult['List']);
-            $aContactCards = ContactCard::whereIn('CardId', $aContactUUIDs)->whereNotNull('Properties->' . $this->GetName() . '::PgpKey')->get();
+            $aContactCards = ContactCard::whereIn('CardId', $aContactUUIDs)->whereNotNull('contacts_cards.Properties->' . $this->GetName() . '::PgpKey')->get();
             $aContactCardsSorted = array();
             $sEncryptPropName = $this->GetName() . '::PgpEncryptMessages';
             $sSignPropName = $this->GetName() . '::PgpSignMessages';
@@ -456,16 +456,16 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         $aContactsInfo = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsInfo(
             StorageType::All,
             $UserId,
-            ContactCard::whereNotNull('Properties->' . $this->GetName() . '::PgpKey')
+            ContactCard::whereNotNull('contacts_cards.Properties->' . $this->GetName() . '::PgpKey')
         );
 
         $aContactUUIDs = [];
         if (is_array($aContactsInfo['Info']) && count($aContactsInfo['Info']) > 0) {
-            $aContactUUIDs = array_map(function ($aValue) {
+            foreach ($aContactsInfo['Info'] as $aValue) {
                 if (!$aValue['IsTeam'] && !$aValue['Shared']) {
-                    return $aValue['UUID'];
+                    $aContactUUIDs[] = $aValue['UUID'];
                 }
-            }, $aContactsInfo['Info']);
+            }
         }
         $aResult = $this->Decorator()->GetPublicKeysByCountactUUIDs($UserId, $aContactUUIDs);
 
