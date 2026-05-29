@@ -457,6 +457,7 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
             StorageType::All,
             $UserId,
             ContactCard::whereNotNull('contacts_cards.Properties->' . $this->GetName() . '::PgpKey')
+                ->where('contacts_cards.Properties->' . $this->GetName() . '::PgpKey', '!=', '')
         );
 
         $aContactUUIDs = [];
