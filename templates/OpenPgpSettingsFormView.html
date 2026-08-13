@@ -2,12 +2,12 @@
 	<h2 class="settings_heading" data-bind="i18n: {'key': '%MODULENAME%/HEADING_SETTINGS_TAB'}"></h2>
 </div>
 
-<div class="panel_center">
+<div class="panel_center" data-test-id="settings-openpgp">
 	<div class="fields">
 		<div class="fieldset">
 			<div class="row" data-bind="visible: isMailAvailable">
 				<span class="value">
-					<label class="custom_checkbox" data-bind="css: {'checked': enableOpenPgpInMail}">
+					<label class="custom_checkbox" data-test-id="settings-openpgp-enable-mail" data-bind="css: {'checked': enableOpenPgpInMail}">
 						<span class="icon"></span>
 						<input type="checkbox" id="enableOpenPgpInMail" data-bind="checked: enableOpenPgpInMail" />
 					</label>
