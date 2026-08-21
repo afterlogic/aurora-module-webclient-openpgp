@@ -227,8 +227,8 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
                         $sSignPropName = $this->GetName() . '::PgpSignMessages';
 
                         // copy user-related values to main properties
-                        $oContact->setExtendedProp($sEncryptPropName, $oContact->getExtendedProp($sEncryptPropName . '_' . $aArgs['UserId']) || false);
-                        $oContact->setExtendedProp($sSignPropName, $oContact->getExtendedProp($sSignPropName . '_' . $aArgs['UserId']) || false);
+                        $oContact->setExtendedProp($sEncryptPropName, (bool) ($oContact->getExtendedProp($sEncryptPropName . '_' . $aArgs['UserId']) || false));
+                        $oContact->setExtendedProp($sSignPropName, (bool) ($oContact->getExtendedProp($sSignPropName . '_' . $aArgs['UserId']) || false));
 
                         // remove user-related values from properties
                         foreach ($oContact->Properties as $sPropName => $sPropValue) {
