@@ -500,25 +500,24 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         return $mResult;
     }
 
-    protected function getTeamContactByUser($oUser)
+    protected function getOwnContactsByUser($oUser)
     {
-        $mResult = false;
+        $aResult = [];
 
-        if (Api::GetModuleManager()->IsAllowedModule('TeamContacts')) {
-            $aContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails(
-                $oUser->Id,
-                \Aurora\Modules\Contacts\Enums\StorageType::Team,
-                [$oUser->PublicId]
-            );
-            if ($aContacts && count($aContacts) > 0) {
-                $oContact = $aContacts[0];
+        $aContacts = \Aurora\Modules\Contacts\Module::Decorator()->GetContactsByEmails(
+            $oUser->Id,
+            StorageType::All,
+            [$oUser->PublicId]
+        );
+        if ($aContacts && count($aContacts) > 0) {
+            foreach ($aContacts as $oContact) {
                 if ($oContact instanceof ContactCard) {
-                    $mResult = $oContact;
+                    $aResult[] = $oContact;
                 }
             }
         }
 
-        return $mResult;
+        return $aResult;
     }
 
     public function UpdateOwnContactPublicKey($UserId, $PublicPgpKey = '')
@@ -529,16 +528,16 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         $oUser = Api::getAuthenticatedUser();
         if ($oUser) {
             if ($oUser->Id === $UserId) {
-                $oContactCard = $this->getTeamContactByUser($oUser);
-                if ($oContactCard instanceof ContactCard) {
+                $aContacts = $this->getOwnContactsByUser($oUser);
+                foreach ($aContacts as $oContactCard) {
                     $properties = $oContactCard->Properties;
                     if (!empty($PublicPgpKey)) {
                         $properties[$this->GetName() . '::PgpKey'] = $PublicPgpKey;
-
                     } else {
                         unset($properties[$this->GetName() . '::PgpKey']);
                     }
-                    $mResult = !!ContactCard::where('CardId', $oContactCard->Id)->update(['Properties' => $properties]);
+                    ContactCard::where('CardId', $oContactCard->Id)->update(['Properties' => $properties]);
+                    $mResult = true;
                 }
             }
         }
@@ -555,9 +554,13 @@ class Module extends \Aurora\System\Module\AbstractWebclientModule
         $oUser = Api::getAuthenticatedUser();
         if ($oUser) {
             if ($oUser->Id === $UserId) {
-                $oContactCard = $this->getTeamContactByUser($oUser);
-                if ($oContactCard instanceof ContactCard) {
-                    $mResult = $oContactCard->getExtendedProp($this->GetName() . '::PgpKey', false);
+                $aContacts = $this->getOwnContactsByUser($oUser);
+                foreach ($aContacts as $oContactCard) {
+                    $mKey = $oContactCard->getExtendedProp($this->GetName() . '::PgpKey', false);
+                    if ($mKey) {
+                        $mResult = $mKey;
+                        break;
+                    }
                 }
             }
         }
