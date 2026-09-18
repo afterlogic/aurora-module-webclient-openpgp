@@ -62,8 +62,8 @@ CEncryptPopup.prototype.onOpen = function (dataToEncrypt, fromEmail, resipientsI
 {
 	this.data(dataToEncrypt);
 	this.fromEmail(fromEmail);
-	this.emails(resipientsInfo.map(info => info.email));
-	this.contactsUUIDs = resipientsInfo.map(info => info.uuid);
+	this.emails(resipientsInfo.map(info => info.email).filter(Boolean));
+	this.contactsUUIDs = resipientsInfo.map(info => info.uuid).filter(Boolean);
 	this.successEncryptCallback = _.isFunction(successEncryptCallback) ? successEncryptCallback : () => {};
 	this.needToSign(true);
 	this.needToEncrypt(true);

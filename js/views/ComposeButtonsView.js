@@ -198,8 +198,22 @@ CComposeButtonsView.prototype.openPgpPopup = function ()
 			this.pgpEncrypted(isEncrypted);
 		};
 
+		// getRecipientsInfo() only has contacts (autocomplete / address-book match).
+		// Typing an address + Enter leaves it empty → EncryptPopup sees no emails and
+		// never encrypts (dialog stays open). Merge in To/Cc/Bcc emails from the form.
+		var aRecipientsInfo = this.oCompose.getRecipientsInfo() || [];
+		var aKnown = _.map(aRecipientsInfo, function (oInfo) {
+			return (oInfo && oInfo.email ? oInfo.email : '').toLowerCase();
+		});
+		_.each(this.oCompose.getRecipientEmails() || [], function (sEmail) {
+			if (sEmail && aKnown.indexOf(sEmail.toLowerCase()) === -1) {
+				aRecipientsInfo.push({ email: sEmail, uuid: '' });
+				aKnown.push(sEmail.toLowerCase());
+			}
+		});
+
 		Popups.showPopup(EncryptPopup, [this.oCompose.getPlainText(), this.oCompose.getFromEmail(),
-			this.oCompose.getRecipientsInfo(), successCallback]);
+			aRecipientsInfo, successCallback]);
 	}
 };
 

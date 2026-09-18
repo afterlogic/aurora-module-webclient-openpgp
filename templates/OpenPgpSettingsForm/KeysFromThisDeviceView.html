@@ -16,7 +16,7 @@
 		></span>
 	</div>
 	<div class="folders items_list" data-bind="foreach: publicKeysFromThisDevice">
-		<div class="item">
+		<div class="item" data-test-id="settings-openpgp-public-key">
 			<span class="title">
 				<span class="controls">
 					<span class="button subscribe subscribed"
@@ -57,7 +57,7 @@
 		></span>
 	</div>
 	<div class="folders items_list" data-bind="foreach: privateKeysFromThisDevice">
-		<div class="item">
+		<div class="item" data-test-id="settings-openpgp-private-key">
 			<span class="title">
 				<span class="controls">
 					<span class="button subscribe subscribed"

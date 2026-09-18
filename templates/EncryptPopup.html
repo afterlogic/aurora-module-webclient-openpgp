@@ -1,4 +1,4 @@
-<div class="popup" style="display: none;">
+<div class="popup" data-test-id="openpgp-encrypt-popup" style="display: none;">
 	<div class="mask" data-bind="click: cancelPopup"></div>
 	<div class="popup_panel">
 		<span class="close" data-bind="click: cancelPopup"></span>
@@ -7,7 +7,7 @@
 		<div class="fields">
 			<div class="row">
 				<div style="white-space: nowrap;">
-					<label data-bind="css: {'checked': needToSign}" class="custom_checkbox checked">
+					<label data-bind="css: {'checked': needToSign}" class="custom_checkbox checked" data-test-id="openpgp-encrypt-sign">
 						<span class="icon"></span>
 						<input type="checkbox" data-bind="checked: needToSign" id="openpgp-sign" />
 					</label>
@@ -16,7 +16,7 @@
 			</div>
 			<div class="row">
 				<div>
-					<label data-bind="css: {'checked': needToEncrypt}" class="custom_checkbox checked">
+					<label data-bind="css: {'checked': needToEncrypt}" class="custom_checkbox checked" data-test-id="openpgp-encrypt-encrypt">
 						<span class="icon"></span>
 						<input type="checkbox" data-bind="checked: needToEncrypt" id="openpgp-encrypt" />
 					</label>
@@ -24,7 +24,7 @@
 				</div>
 			</div>
 			<div class="buttons">
-				<span class="button" data-bind="text: signEncryptButtonText, command: signEncryptCommand, visible: isEnableSignEncrypt"></span>
+				<span class="button" data-test-id="openpgp-encrypt-submit" data-bind="text: signEncryptButtonText, command: signEncryptCommand, visible: isEnableSignEncrypt"></span>
 				<span class="button secondary_button" data-bind="i18n: {'key': 'COREWEBCLIENT/ACTION_CANCEL'}, click: cancelPopup"></span>
 			</div>
 		</div>

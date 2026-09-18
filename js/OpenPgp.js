@@ -861,24 +861,52 @@ COpenPgp.prototype.verify = async function (sData, sFromEmail, fOkHandler, fErro
 
 COpenPgp.prototype.getPublicKeysByContactsAndEmails = async function (contactUUIDs, emails)
 {
-	return new Promise((resolve, reject) => {
+	const
+		uuids = _.filter(contactUUIDs || [], function (sUuid) { return !!sUuid; }),
+		aEmails = emails || []
+	;
+
+	// No contact UUIDs → use keys already on this device (skip Ajax round-trip).
+	if (uuids.length === 0)
+	{
+		return this.findKeysByEmails(aEmails, true);
+	}
+
+	return new Promise((resolve) => {
+		let bResolved = false;
 		const
 			parameters = {
-				ContactUUIDs: contactUUIDs
+				ContactUUIDs: uuids
+			},
+			fResolveOnce = (aKeys) => {
+				if (!bResolved)
+				{
+					bResolved = true;
+					resolve(aKeys);
+				}
+			},
+			fResolveLocal = () => {
+				fResolveOnce(this.findKeysByEmails(aEmails, true));
 			},
 			responseHandler = async response => {
-				const
-					publicKeysArmorsFromContacts = Array.isArray(response.Result) ? response.Result : [],
-					publicKeysFromContacts = await getKeysFromArmors(publicKeysArmorsFromContacts),
-					publicKeysFromContactsEmails = publicKeysFromContacts.map(publicKey => publicKey.emailParts.email),
-					notFoundPrincipalsEmails = emails.filter(email => !publicKeysFromContactsEmails.includes(email)),
-					publicKeysFromLocalStorage = this.findKeysByEmails(notFoundPrincipalsEmails),
-					allPublicKeys = publicKeysFromContacts.concat(publicKeysFromLocalStorage)
-				;
-				resolve(allPublicKeys);
+				try {
+					const
+						publicKeysArmorsFromContacts = Array.isArray(response.Result) ? response.Result : [],
+						publicKeysFromContacts = await getKeysFromArmors(publicKeysArmorsFromContacts),
+						publicKeysFromContactsEmails = publicKeysFromContacts.map(publicKey => publicKey.emailParts.email),
+						notFoundPrincipalsEmails = aEmails.filter(email => !publicKeysFromContactsEmails.includes(email)),
+						publicKeysFromLocalStorage = this.findKeysByEmails(notFoundPrincipalsEmails),
+						allPublicKeys = publicKeysFromContacts.concat(publicKeysFromLocalStorage)
+					;
+					fResolveOnce(allPublicKeys);
+				} catch (e) {
+					fResolveLocal();
+				}
 			}
 		;
 		Ajax.send('OpenPgpWebclient', 'GetPublicKeysByCountactUUIDs', parameters, responseHandler);
+		// Never leave encrypt UI waiting forever if the request stalls.
+		setTimeout(fResolveLocal, 15000);
 	});
 };
 
@@ -897,6 +925,18 @@ COpenPgp.prototype.encrypt = async function (dataToEncrypt, principalsEmails, su
 		findKeysResult = new COpenPgpResult(),
 		allPublicKeys = await this.getPublicKeysByContactsAndEmails(contactsUUIDs, principalsEmails)
 	;
+
+	if (!Types.isNonEmptyArray(allPublicKeys))
+	{
+		_.each(principalsEmails || [], function (sEmail) {
+			findKeysResult.addError(Enums.OpenPgpErrors.PublicKeyNotFoundError, sEmail);
+		});
+		if (_.isFunction(errorCallback))
+		{
+			errorCallback(findKeysResult);
+		}
+		return;
+	}
 
 	if (findKeysResult.hasErrors()) {
 		if (_.isFunction(errorCallback)) {
