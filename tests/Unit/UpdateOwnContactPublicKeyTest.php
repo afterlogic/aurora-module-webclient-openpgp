@@ -98,17 +98,14 @@ class UpdateOwnContactPublicKeyTest extends TestCase
 		$this->testableModule = new Module($sPath);
 
 		$ref = new \ReflectionProperty(Api::class, 'usersCache');
-		$ref->setAccessible(true);
 		$ref->setValue(null, [
 			100 => new FakeUser(100, 'user@example.com', 0),
 		]);
 
 		$refSession = new \ReflectionProperty(Api::class, 'aUserSession');
-		$refSession->setAccessible(true);
 		$refSession->setValue(null, ['UserId' => 100, 'AuthToken' => '']);
 
 		$refAuth = new \ReflectionProperty(Api::class, 'oAuthenticatedUser');
-		$refAuth->setAccessible(true);
 		$refAuth->setValue(null, null);
 	}
 
@@ -118,15 +115,12 @@ class UpdateOwnContactPublicKeyTest extends TestCase
 		Api::$aModuleDecorators['Contacts'] = null;
 
 		$ref = new \ReflectionProperty(Api::class, 'usersCache');
-		$ref->setAccessible(true);
 		$ref->setValue(null, []);
 
 		$refSession = new \ReflectionProperty(Api::class, 'aUserSession');
-		$refSession->setAccessible(true);
 		$refSession->setValue(null, []);
 
 		$refAuth = new \ReflectionProperty(Api::class, 'oAuthenticatedUser');
-		$refAuth->setAccessible(true);
 		$refAuth->setValue(null, null);
 	}
 
@@ -162,7 +156,6 @@ class UpdateOwnContactPublicKeyTest extends TestCase
 	private function callGetOwnContactsByUser($oUser)
 	{
 		$refMethod = new \ReflectionMethod($this->testableModule, 'getOwnContactsByUser');
-		$refMethod->setAccessible(true);
 		return $refMethod->invoke($this->testableModule, $oUser);
 	}
 
