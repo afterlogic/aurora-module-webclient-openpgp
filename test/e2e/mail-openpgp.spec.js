@@ -28,7 +28,13 @@ const {
   waitForOpenedMessageView,
   FOLDER_TYPES,
 } = moduleHelper('MailWebclient', 'mail')
+const { prepareOwnKeysForGenerate, cleanupOwnKeysInContacts } = moduleHelper(
+  'OpenPgpWebclient',
+  'openpgp-contacts'
+)
 
+// Passphrase for the OpenPGP key the test generates; empty = a key without a passphrase.
+// Private keys live only in localStorage, so every test context starts without one.
 const openPgpPassword = process.env.E2E_OPENPGP_PASSWORD || ''
 
 async function openOpenPgpTab(page) {
@@ -238,12 +244,18 @@ async function encryptComposeWithOpenPgp(page) {
 test.describe('Desktop OpenPGP mail', () => {
   test.skip(!hasCredentials(), 'Set E2E_LOGIN_PRIMARY in .env.e2e')
 
+  // Leave no own public key in contacts, whatever the test did or where it failed.
+  test.afterEach(async ({ page }) => {
+    await cleanupOwnKeysInContacts(page)
+  })
+
   test('encrypts compose and decrypts message in Inbox', async ({ page }) => {
     test.setTimeout(T(360000))
     const subject = `E2E OpenPGP ${Date.now()}`
     const bodyText = `Encrypted body ${Date.now()}`
 
     await gotoLoggedIn(page)
+    await prepareOwnKeysForGenerate(page)
 
     const opened = await openOpenPgpTab(page)
     test.skip(!opened, 'OpenPGP settings tab is not available on this stand')
@@ -255,10 +267,6 @@ test.describe('Desktop OpenPGP mail', () => {
     })
 
     const generate = page.getByTestId('settings-openpgp-generate')
-    test.skip(
-      !openPgpPassword,
-      'Set E2E_OPENPGP_PASSWORD to run encrypt/decrypt (private key + passphrase required)'
-    )
 
     await step('Generate key when none exists', async () => {
       const privateKey = openPgpKeyItems(page, 'private').first()
